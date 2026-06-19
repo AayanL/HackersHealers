@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Launch medication list</title>
+  <script src="https://cdn.jsdelivr.net/npm/fhirclient/build/fhir-client.js"></script>
+</head>
+<body>
+  <p>Launching&hellip;</p>
+  <script>
+    FHIR.oauth2.authorize({
+      // No registration needed on the SMART sandbox — any client_id works there.
+      clientId: "my_med_app",
+
+      // What we're asking permission for:
+      //   launch            - use the patient/encounter the EHR has open
+      //   openid, fhirUser  - identify the logged-in user
+      //   patient/*.read    - read this patient's data
+      scope: "launch openid fhirUser patient/*.read",
+
+      // Where the EHR sends us back once authorized:
+      redirectUri: "index.html"
+    });
+  </script>
+</body>
+</html>

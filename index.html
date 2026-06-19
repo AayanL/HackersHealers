@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Medication list (SMART)</title>
+  <script src="https://cdn.jsdelivr.net/npm/fhirclient/build/fhir-client.js"></script>
+  <style>
+    :root { color-scheme: light; }
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      max-width: 720px;
+      margin: 40px auto;
+      padding: 0 20px;
+      color: #1c1c1a;
+      background: #faf9f6;
+      line-height: 1.5;
+    }
+    h1 { font-size: 20px; font-weight: 600; margin: 0 0 4px; }
+    .source { color: #6b6a64; font-size: 13px; margin-bottom: 24px; }
+    .patient {
+      background: #fff;
+      border: 1px solid #e4e2da;
+      border-radius: 10px;
+      padding: 16px 18px;
+      margin-bottom: 20px;
+    }
+    .patient .name { font-size: 17px; font-weight: 600; }
+    .patient .meta { color: #6b6a64; font-size: 13px; margin-top: 2px; }
+    .med {
+      background: #fff;
+      border: 1px solid #e4e2da;
+      border-radius: 10px;
+      padding: 12px 16px;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    .med .body { flex: 1; }
+    .med .drug { font-weight: 600; }
+    .med .dose { color: #4a4a46; font-size: 14px; margin-top: 2px; }
+    .med .date { color: #8a8980; font-size: 12px; margin-top: 4px; }
+    .badge {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      padding: 3px 8px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+    .badge.active    { background: #e3f3ea; color: #15683f; }
+    .badge.stopped   { background: #fbe7e7; color: #8f2020; }
+    .badge.completed { background: #ecebe4; color: #5a5953; }
+    .badge.other     { background: #eaf1fb; color: #1c548f; }
+    .status { color: #6b6a64; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <h1>Medication list</h1>
+  <div class="source">In-context patient via SMART launch &middot; synthetic data only</div>
+  <div id="patient"></div>
+  <div id="meds" class="status">Authorizing&hellip;</div>
+
+  <script>
+    function drugName(mr) {
+      const cc = mr.medicationCodeableConcept;
+      if (cc) {
+        if (cc.text) return cc.text;
+        if (cc.coding && cc.coding[0] && cc.coding[0].display) return cc.coding[0].display;
+      }
+      if (mr.medicationReference && mr.medicationReference.display) {
+        return mr.medicationReference.display;
+      }
+      return "Unnamed medication";
+    }
+
+    function dosageText(mr) {
+      const d = mr.dosageInstruction && mr.dosageInstruction[0];
+      return d && d.text ? d.text : "";
+    }
+
+    function badgeClass(status) {
+      if (status === "active") return "active";
+      if (status === "stopped" || status === "cancelled") return "stopped";
+      if (status === "completed") return "completed";
+      return "other";
+    }
+
+    function patientName(p) {
+      const n = (p.name && p.name[0]) || {};
+      const given = (n.given || []).join(" ");
+      const full = [given, n.family].filter(Boolean).join(" ");
+      return full || "Unknown patient";
+    }
+
+    // SMART completes the handshake and hands us a client that already knows
+    // which patient is in context — no searching, no guessing.
+    FHIR.oauth2.ready().then(function (client) {
+
+      client.patient.read().then(function (p) {
+        const dob = p.birthDate ? p.birthDate : "DOB unknown";
+        const sex = p.gender ? p.gender : "";
+        document.getElementById("patient").innerHTML =
+          '<div class="patient">' +
+            '<div class="name">' + patientName(p) + '</div>' +
+            '<div class="meta">' + [sex, dob, p.id].filter(Boolean).join(" &middot; ") + '</div>' +
+          '</div>';
+      });
+
+      // Meds for the in-context patient only.
+      client.request("MedicationRequest?patient=" + client.patient.id)
+        .then(function (bundle) {
+          const meds = (bundle.entry || []).map(function (e) { return e.resource; });
+
+          if (!meds.length) {
+            document.getElementById("meds").innerText = "No medications recorded for this patient.";
+            return;
+          }
+
+          meds.sort(function (a, b) {
+            if ((a.status === "active") !== (b.status === "active")) {
+              return a.status === "active" ? -1 : 1;
+            }
+            return (b.authoredOn || "").localeCompare(a.authoredOn || "");
+          });
+
+          const html = meds.map(function (mr) {
+            const dose = dosageText(mr);
+            const date = mr.authoredOn ? "Prescribed " + mr.authoredOn.slice(0, 10) : "";
+            return '<div class="med">' +
+                '<div class="body">' +
+                  '<div class="drug">' + drugName(mr) + '</div>' +
+                  (dose ? '<div class="dose">' + dose + '</div>' : '') +
+                  (date ? '<div class="date">' + date + '</div>' : '') +
+                '</div>' +
+                '<span class="badge ' + badgeClass(mr.status) + '">' + (mr.status || "unknown") + '</span>' +
+              '</div>';
+          }).join("");
+
+          document.getElementById("meds").className = "";
+          document.getElementById("meds").innerHTML = html;
+        })
+        .catch(function (err) {
+          document.getElementById("meds").innerText = "Error fetching medications: " + err.message;
+          console.error(err);
+        });
+
+    }).catch(function (err) {
+      document.getElementById("meds").innerText = "Authorization failed: " + err.message;
+      console.error(err);
+    });
+  </script>
+</body>
+</html>
