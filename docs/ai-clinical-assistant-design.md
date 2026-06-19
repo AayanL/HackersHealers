@@ -5,7 +5,10 @@
 ### Why this exists
 The portal today is a working SMART-on-FHIR demo built from three static `fhirclient.js` HTML files: a `launch.html` that runs the SMART OAuth2 handshake, an `index.html` that reads the in-context patient and renders their `MedicationRequest` list, and a `meds.html` sandbox demo. The clinician already has a patient in context and a scoped, browser-side read token. What they *don't* have is a way to ask the chart a question, cross-check it, or turn it into prose without leaving the screen and tab-hunting across the EHR.
 
-This document specifies an **AI clinical assistant** layered on top of that demo as the team rebuilds the front end in **Next.js**. The assistant is a single docked surface that hosts **eight features** (F1–F8), each of which plugs into shared infrastructure and can be removed without disturbing the rest.
+This document specifies an **AI clinical assistant** layered on top of that demo as the team rebuilds the front end in **Next.js (App Router)**. The assistant is a single docked surface that hosts **eight features** (F1–F8), each of which plugs into shared infrastructure and can be removed without disturbing the rest. The LLM is reached through a **provider-agnostic gateway** (the Vercel AI SDK), default-backed by Claude but swappable to another provider in one line.
+
+### The demo surface — a mock EHR shell
+Real SMART apps don't live in a standalone tab; the EHR embeds them as an icon/panel inside the patient chart (an iframe in the EHR's own screen, patient context already loaded). The sandbox launcher can't embed us — it has no chart UI — so it opens our app URL in a new tab. We reproduce the embedded experience by making **the launched page itself a mock EHR shell**: a patient banner, a chart sidebar, the medication list, and the assistant docked as a right-side panel. A real **SMART App Launch** lands the in-context patient in that shell, so the clinician sees the assistant *inside the chart* — embedded in look and behavior — with no second login or tab switch. The shell is demo scaffolding; in production the same standards-compliant app slots into the EHR vendor's own chrome (and write-back actions would flow via SMART Web Messaging).
 
 ### What success looks like
 - A clinician can ask a free-form question about the in-context patient and get an answer **grounded only in that patient's chart**, with every claim click-through traceable to the source FHIR resource.
@@ -61,14 +64,14 @@ Six infra modules carry everything that isn't a feature's domain logic:
 |---|---|
 | **a. FHIR Data Access** | wraps `fhirclient.js`; typed, patient-scoped fetchers (`getMedications()`, `getConditions()`); caching/de-dup so F1/F2/F8 hit the server once; a validated, patient-pinned search primitive for F4 |
 | **b. Patient Context** | promotes `FHIR.oauth2.ready() → client.patient` to app-wide context; enforces "exactly one patient in context" — the single-patient scope every fetcher and the grounding layer inherit (the cross-patient scan in today's `meds.html` is *dropped*, not ported) |
-| **c. LLM Gateway** | one provider-agnostic `complete({ messages, tools, system })`, **default-backed by Claude / Anthropic**, behind a Next.js Route Handler; home of the secret key, system prompts, rate limiting, model selection, and (later) the BAA endpoint |
+| **c. LLM Gateway** | the **Vercel AI SDK** (`streamText`) behind a Next.js Route Handler — one provider-agnostic interface, **default-backed by Claude (`@ai-sdk/anthropic`, `claude-opus-4-8`)** and swappable to OpenAI / Google in a single line; home of the secret key, system prompts, streaming, rate limiting, model selection, and (later) the BAA endpoint |
 | **d. Grounding / Retrieval** | assembles the context bundle, tags every fact with its source resource id for citation, enforces single-patient scope so no feature can bypass it |
 | **e. Tool-calling / Orchestration** | runs the model's tool loop; splits read/query tools (execute immediately) from write/consequential tools (returned as a *proposed action* → review card → execute only on explicit click). F5's "never auto-submit" is a property of *this layer* |
 | **f. Audit + Safety middleware** | wraps every gateway call and tool execution: append-only audit (who, patient, capability, in/out, timestamp) and guardrails (PHI policy, "DRAFT" labeling, scope re-validation, per-capability kill-switch) |
 
 ### Next.js client-vs-API-route split
 - **Client components:** chat UI, side panel, proactive band, the SMART launch/`ready()` handshake, the Data Access layer + Patient Context (they hold the browser-side scoped token), read-only client-eligible tool handlers, citation and review-card rendering.
-- **Route Handlers (server):** `/api/chat` (the only path to gateway + audit + guardrails) and `/api/tools/*` only for tools needing a secret or external source. The server holds the Anthropic and external keys; it does **not** hold the patient's FHIR token — grounding is assembled client-side and POSTed in (today) or via a backend FHIR service account (later).
+- **Route Handlers (server):** `/api/chat` (the only path to gateway + audit + guardrails) and `/api/tools/*` only for tools needing a secret or external source. The server holds the provider key (`ANTHROPIC_API_KEY`, read by the AI SDK) and any external keys; it does **not** hold the patient's FHIR token — grounding is assembled client-side and POSTed in (today) or via a backend FHIR service account (later).
 
 ### Data flow for one chat turn
 
@@ -246,7 +249,7 @@ Adding a feature is the mirror image: drop a folder, add one `register` line, ed
 ### The minimal set of API routes
 | Route | Responsibility | Serves |
 |---|---|---|
-| **`/api/chat`** | the single LLM gateway — holds the secret key, de-identifies/minimizes, assembles prompts | F1, F2 (narrative), F3, F4 (translation), F5 (draft), F6, F7, F8. *The one route the AI layer cannot live without.* |
+| **`/api/chat`** | the single LLM gateway (Vercel AI SDK `streamText`, default `claude-opus-4-8`, streaming, provider-swappable) — holds the secret key, de-identifies/minimizes, assembles prompts | F1, F2 (narrative), F3, F4 (translation), F5 (draft), F6, F7, F8. *The one route the AI layer cannot live without.* |
 | **`/api/audit`** | append-only, tamper-evident log of every AI interaction | F5 mandatory; all features once PHI is in play |
 | **`/api/terminology`** | proxy for keyed/CORS-restricted external knowledge (RxNorm, DDI, renal-dose, SNOMED/ICD-10, value sets, guideline content) | F2, F7, F8 |
 | **`/api/fhir-write`** | guarded write broker holding `*.write`, enforcing draft → explicit-human-confirm → submit + audit | F5; reused by F6 if notes write back |
@@ -366,7 +369,9 @@ Today's `meds.html` does **not** honor a single-patient scope: it requests a cro
 ### Phase 1 — Synthetic MVP
 **Scope.** Ship read-only, advisory features against sandbox/synthetic FHIR. No real patients → no BAA and no de-identification legally required, but the plumbing for both is built and run against fake data. Prove the UX of grounding, citations, and draft-and-confirm.
 **Done when:**
-- All LLM calls flow through `/api/chat`; **zero** model keys/endpoints/SDKs in client bundles (verify by inspecting built JS).
+- The **EHR shell** (patient banner · chart sidebar · medication list · docked assistant) is the launch surface; a real **SMART App Launch** lands the in-context patient in the shell, so the demo shows the embedded-in-the-chart experience, not a bare app.
+- **F1 (Ask about this patient)** runs live end-to-end on synthetic data — grounded, cited, and streamed through the gateway.
+- All LLM calls flow through `/api/chat` (Vercel AI SDK `streamText`); **zero** provider keys/SDKs in client bundles (verify by inspecting built JS).
 - A `DataMode` flag (`synthetic` | `phi`) gates behavior centrally; Phase 1 runs `synthetic`.
 - **Blanket `patient/*.read` is replaced by narrowed per-feature read scopes** assembled from the registered capabilities — `launch.html`'s `patient/*.read` no longer ships; the requested scope set is the union of declared per-capability scopes.
 - **The single-patient invariant is enforced via Patient Context** — the `meds.html` cross-patient scan is removed; every fetcher and the grounding layer operate on exactly one in-context patient.
