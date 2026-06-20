@@ -55,6 +55,30 @@ export function resourceIndex(
     };
   }
 
+  for (const im of ctx.immunizations ?? []) {
+    index[im.ref] = {
+      ref: im.ref,
+      type: "Immunization",
+      title: im.label,
+      fields: [
+        ...(im.date ? [{ label: "Given", value: im.date }] : []),
+        ...(im.code ? [{ label: "Code", value: im.code }] : []),
+      ],
+    };
+  }
+
+  for (const pr of ctx.procedures ?? []) {
+    index[pr.ref] = {
+      ref: pr.ref,
+      type: "Procedure",
+      title: pr.label,
+      fields: [
+        ...(pr.date ? [{ label: "Performed", value: pr.date }] : []),
+        ...(pr.code ? [{ label: "Code", value: pr.code }] : []),
+      ],
+    };
+  }
+
   return index;
 }
 

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Console from "@/app/components/Console";
 import { citationLabels } from "@/lib/citations";
 import { buildGlance, safetyScan } from "@/lib/glance";
+import { buildHealthMaintenance, preventiveSummary } from "@/lib/preventive";
 import { resourceIndex } from "@/lib/resources";
 import {
   SEED_ALERTS,
@@ -12,19 +13,23 @@ import {
   type ChatMessage,
 } from "@/lib/assistant";
 import { sendChat } from "@/lib/chat-client";
-import { mapMedications, patientView } from "@/lib/fhir";
+import { mapImmunizations, mapMedications, mapProcedures, patientView } from "@/lib/fhir";
 import {
   buildPatientContext,
+  type ContextImmunization,
   type ContextObservation,
   type ContextProblem,
+  type ContextProcedure,
 } from "@/lib/grounding";
 import {
   SEED_ALLERGIES,
   SEED_CODE_STATUS,
+  SEED_IMMUNIZATIONS,
   SEED_MEDICATIONS,
   SEED_OBSERVATIONS,
   SEED_PATIENT,
   SEED_PROBLEMS,
+  SEED_PROCEDURES,
 } from "@/lib/seed";
 import { loadChart } from "@/lib/smart";
 import type {
@@ -41,6 +46,8 @@ interface ChartView {
   codeStatus: string;
   problems: ContextProblem[];
   observations: ContextObservation[];
+  immunizations: ContextImmunization[];
+  procedures: ContextProcedure[];
 }
 
 function toView(
@@ -50,6 +57,8 @@ function toView(
   codeStatus: string,
   problems: ContextProblem[],
   observations: ContextObservation[],
+  immunizations: ContextImmunization[],
+  procedures: ContextProcedure[],
 ): ChartView {
   return {
     patient: patientView(patient),
@@ -58,6 +67,8 @@ function toView(
     codeStatus,
     problems,
     observations,
+    immunizations,
+    procedures,
   };
 }
 
@@ -68,6 +79,8 @@ const DEMO_VIEW = toView(
   SEED_CODE_STATUS,
   SEED_PROBLEMS,
   SEED_OBSERVATIONS,
+  mapImmunizations(SEED_IMMUNIZATIONS),
+  mapProcedures(SEED_PROCEDURES),
 );
 
 type Phase = "loading" | "live" | "demo";
@@ -83,20 +96,31 @@ export default function Home() {
   useEffect(() => {
     let cancelled = false;
     loadChart()
-      .then(({ patient, medications, problems, observations }) => {
-        if (cancelled) return;
-        setView(
-          toView(
-            patient,
-            medications,
-            [],
-            "Code status unknown",
-            problems,
-            observations,
-          ),
-        );
-        setPhase("live");
-      })
+      .then(
+        ({
+          patient,
+          medications,
+          problems,
+          observations,
+          immunizations,
+          procedures,
+        }) => {
+          if (cancelled) return;
+          setView(
+            toView(
+              patient,
+              medications,
+              [],
+              "Code status unknown",
+              problems,
+              observations,
+              immunizations,
+              procedures,
+            ),
+          );
+          setPhase("live");
+        },
+      )
       .catch(() => {
         // No SMART session in context — fall back to the synthetic demo chart.
         if (!cancelled) setPhase("demo");
@@ -113,6 +137,8 @@ export default function Home() {
         view.meds,
         view.problems,
         view.observations,
+        view.immunizations,
+        view.procedures,
       ),
     [view],
   );
@@ -122,7 +148,9 @@ export default function Home() {
   // Dock content by phase: seed for demo, computed-from-chart for live, empty
   // while loading (no dummy flash).
   const glance = useMemo(() => {
-    if (phase === "demo") return SEED_GLANCE;
+    // Demo keeps the curated seed prose but merges the live preventive rollups
+    // (computed from the seed chart) so At a Glance and the section agree.
+    if (phase === "demo") return { ...SEED_GLANCE, ...preventiveSummary(context) };
     if (phase === "live") return buildGlance(context);
     return undefined;
   }, [phase, context]);
@@ -131,6 +159,12 @@ export default function Home() {
     if (phase === "live") return safetyScan(context);
     return [];
   }, [phase, context]);
+  // The preventive section is computed from the in-context chart in both demo
+  // and live (the seed populates demo's context); empty while loading.
+  const healthMaintenance = useMemo(
+    () => (phase === "loading" ? [] : buildHealthMaintenance(context)),
+    [phase, context],
+  );
   const initialMessages = phase === "demo" ? SEED_CONVERSATION : [];
 
   const respond = useCallback(
@@ -150,6 +184,7 @@ export default function Home() {
       dataMode={phase === "live" ? "live" : "synthetic"}
       glance={glance}
       alerts={alerts}
+      healthMaintenance={healthMaintenance}
       initialMessages={initialMessages}
       citationLabels={labels}
       resources={resources}

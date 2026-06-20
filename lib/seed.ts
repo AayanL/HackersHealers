@@ -3,7 +3,12 @@
 // Stored as FHIR resources so the same lib/fhir.ts mappers apply.
 
 import type { ContextObservation, ContextProblem } from "./grounding";
-import type { MedicationRequest, Patient } from "./types";
+import type {
+  Immunization,
+  MedicationRequest,
+  Patient,
+  Procedure,
+} from "./types";
 
 export const SEED_PATIENT: Patient = {
   resourceType: "Patient",
@@ -61,4 +66,51 @@ export const SEED_OBSERVATIONS: ContextObservation[] = [
   { code: "2823-3", label: "Potassium", value: 4.9, unit: "mmol/L", date: "2026-03-18", ref: "Observation/k3" },
   { code: "2823-3", label: "Potassium", value: 5.3, unit: "mmol/L", date: "2026-06-10", ref: "Observation/k" },
   { code: "33914-3", label: "eGFR", value: 58, unit: "mL/min/1.73m²", date: "2026-06-10", ref: "Observation/egfr" },
+];
+
+function immunization(
+  id: string,
+  label: string,
+  occurrenceDateTime: string,
+  code?: string,
+): Immunization {
+  return {
+    resourceType: "Immunization",
+    id,
+    status: "completed",
+    vaccineCode: { text: label, coding: code ? [{ code }] : undefined },
+    occurrenceDateTime,
+    patient: { reference: "Patient/jane-doe" },
+  };
+}
+
+function procedure(
+  id: string,
+  label: string,
+  performedDateTime: string,
+  code?: string,
+): Procedure {
+  return {
+    resourceType: "Procedure",
+    id,
+    status: "completed",
+    code: { text: label, coding: code ? [{ code }] : undefined },
+    performedDateTime,
+    subject: { reference: "Patient/jane-doe" },
+  };
+}
+
+// F15/F16 preventive-care seed for Jane Doe (68 F). Deliberately a realistic
+// mix so the demo shows every status: influenza up-to-date; pneumococcal +
+// shingles (RZV) never given; mammography overdue; cervical + colorectal screens
+// current; bone-density never done. (Pneumococcal/zoster/BMD are intentionally
+// absent so the engine surfaces them as due/missing.)
+export const SEED_IMMUNIZATIONS: Immunization[] = [
+  immunization("imm-flu-2025", "Influenza vaccine", "2025-11-05"),
+];
+
+export const SEED_PROCEDURES: Procedure[] = [
+  procedure("proc-mammo-2022", "Screening mammography", "2022-05-14"),
+  procedure("proc-pap-2024", "Cervical cytology (Pap test)", "2024-03-20"),
+  procedure("proc-fit-2025", "Fecal immunochemical test (FIT)", "2025-09-15"),
 ];

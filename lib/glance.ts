@@ -8,6 +8,7 @@ import { activeMeds, flaggedLabs } from "./clinical";
 import { formatQuantity } from "./format";
 import type { PatientContext } from "./grounding";
 import { checkInteractions } from "./interactions";
+import { preventiveSummary } from "./preventive";
 
 function plural(n: number, word: string): string {
   return `${n} ${word}${n === 1 ? "" : "s"}`;
@@ -42,6 +43,8 @@ export function buildGlance(ctx: PatientContext): GlanceData {
     ...gapMeds.map((m) => `${m.name} is active with no charted indication.`),
   ];
 
+  const preventive = preventiveSummary(ctx);
+
   return {
     summary: `${ctx.patient.sexAge || "Patient"} with ${plural(
       ctx.problems.length,
@@ -53,8 +56,14 @@ export function buildGlance(ctx: PatientContext): GlanceData {
     flagged: flags.length ? flags.map(labText).join(" · ") : "No flagged labs",
     lastVisit,
     resourceCount:
-      ctx.medications.length + ctx.problems.length + ctx.observations.length,
+      ctx.medications.length +
+      ctx.problems.length +
+      ctx.observations.length +
+      (ctx.immunizations?.length ?? 0) +
+      (ctx.procedures?.length ?? 0),
     details: details.length ? details : undefined,
+    vaccines: preventive.vaccines,
+    screenings: preventive.screenings,
   };
 }
 

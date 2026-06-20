@@ -54,4 +54,29 @@ describe("DraftOrderCard", () => {
     render(<DraftOrderCard data={data} />);
     expect(screen.getByRole("button", { name: "Edit" })).toBeInTheDocument();
   });
+
+  it("offers the shared export menu (print / copy / download)", () => {
+    render(<DraftOrderCard data={data} />);
+    const exportBtn = screen.getByRole("button", { name: "Export" });
+    expect(exportBtn).toBeInTheDocument();
+    fireEvent.click(exportBtn);
+    expect(screen.getByRole("menuitem", { name: "Print" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Copy" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("menuitem", { name: "Download" }),
+    ).toBeInTheDocument();
+  });
+
+  it("copies the order draft as text", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, { clipboard: { writeText } });
+    render(<DraftOrderCard data={data} />);
+    fireEvent.click(screen.getByRole("button", { name: "Export" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Copy" }));
+    expect(writeText).toHaveBeenCalledTimes(1);
+    const text = writeText.mock.calls[0][0] as string;
+    expect(text).toContain("ORDER DRAFT");
+    expect(text).toContain("Basic Metabolic Panel · LOINC 51990-0");
+    expect(text).toContain("Priority: Routine");
+  });
 });

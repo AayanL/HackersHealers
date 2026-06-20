@@ -64,6 +64,25 @@ export interface Observation {
   category?: FhirCodeableConcept[];
 }
 
+export interface Immunization {
+  resourceType?: "Immunization";
+  id?: string;
+  status?: string; // "completed" | "entered-in-error" | ...
+  vaccineCode?: FhirCodeableConcept;
+  occurrenceDateTime?: string; // YYYY-MM-DD
+  patient?: { reference?: string };
+}
+
+export interface Procedure {
+  resourceType?: "Procedure";
+  id?: string;
+  status?: string; // "completed" | ...
+  code?: FhirCodeableConcept;
+  performedDateTime?: string; // YYYY-MM-DD
+  performedPeriod?: { start?: string; end?: string };
+  subject?: { reference?: string };
+}
+
 export interface Bundle<T> {
   resourceType?: "Bundle";
   entry?: { resource: T }[];

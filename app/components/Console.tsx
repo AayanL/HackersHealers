@@ -1,7 +1,12 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import type { ChatMessage, GlanceData, SafetyAlert } from "@/lib/assistant";
+import type {
+  ChatMessage,
+  GlanceData,
+  HealthMaintenanceItem,
+  SafetyAlert,
+} from "@/lib/assistant";
 import { type ResourceDetail, unknownResource } from "@/lib/resources";
 import type { MedView, PatientView } from "@/lib/types";
 import AppBar from "./AppBar";
@@ -20,6 +25,7 @@ export interface ConsoleProps {
   dataMode?: string;
   glance?: GlanceData;
   alerts?: SafetyAlert[];
+  healthMaintenance?: HealthMaintenanceItem[];
   initialMessages?: ChatMessage[];
   /** Resource ref → human label, for resolving inline citation chips. */
   citationLabels?: Record<string, string>;
@@ -48,6 +54,7 @@ export function Console({
   dataMode = "synthetic",
   glance,
   alerts = [],
+  healthMaintenance = [],
   initialMessages = [],
   citationLabels,
   resources = {},
@@ -103,6 +110,7 @@ export function Console({
           patientLabel={patient.name}
           glance={glance}
           alerts={alerts}
+          healthMaintenance={healthMaintenance}
           messages={messages}
           pending={pending}
           onSend={handleSend}

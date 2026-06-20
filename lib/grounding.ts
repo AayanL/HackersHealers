@@ -30,11 +30,30 @@ export interface ContextObservation {
   ref: string;
 }
 
+/** F15 — an immunization on file (drives the up-to-date / due check). */
+export interface ContextImmunization {
+  ref: string;
+  code?: string;
+  label: string;
+  date: string;
+}
+
+/** F16 — a performed procedure on file (drives the screening gap check). */
+export interface ContextProcedure {
+  ref: string;
+  code?: string;
+  label: string;
+  date: string;
+}
+
 export interface PatientContext {
   patient: { name: string; sexAge: string; dob: string; mrn: string };
   medications: ContextMedication[];
   problems: ContextProblem[];
   observations: ContextObservation[];
+  /** Optional-with-default (like problems/observations) — F15 preventive engine. */
+  immunizations?: ContextImmunization[];
+  procedures?: ContextProcedure[];
 }
 
 export function buildPatientContext(
@@ -42,6 +61,8 @@ export function buildPatientContext(
   meds: MedView[],
   problems: ContextProblem[] = [],
   observations: ContextObservation[] = [],
+  immunizations: ContextImmunization[] = [],
+  procedures: ContextProcedure[] = [],
 ): PatientContext {
   return {
     patient: {
@@ -60,5 +81,7 @@ export function buildPatientContext(
     })),
     problems,
     observations,
+    immunizations,
+    procedures,
   };
 }

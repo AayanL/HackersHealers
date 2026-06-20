@@ -1,8 +1,15 @@
 # F15 / F16 — Preventive Care: Immunization Status & Screening Gaps (design note)
 
-> **Status: active design — Phase-1 synthetic slice not built yet.** Both features sit behind the same
-> `synthetic | phi` gate as F1–F14: built and demoed on synthetic data with the de-identification +
-> audit seams on the call path, live-PHI flip gated to Phase 2/3.
+> **✅ Implemented — Phase-1 synthetic slice.** The shared engine ships in [`lib/preventive.ts`](../lib/preventive.ts)
+> (`immunizationStatus` / `screeningGaps` / `buildHealthMaintenance` / `preventiveSummary` over a curated
+> CTFPHC/NACI rule table) feeding a new [`HealthMaintenance.tsx`](../app/components/assistant/HealthMaintenance.tsx)
+> section + two At-a-Glance rollup rows, grounded in `Immunization` / `Procedure` chart slices
+> (types in `lib/types.ts`, context in `lib/grounding.ts`, mappers `mapImmunizations` / `mapProcedures`
+> in `lib/fhir.ts`, seed in `lib/seed.ts`, fetch in `lib/smart.ts`, citations via `resourceIndex`). Pure,
+> deterministic, read-only; tests in [`lib/__tests__/preventive.test.ts`](../lib/__tests__/preventive.test.ts).
+> Still behind the same `synthetic | phi` gate as F1–F14: the de-identification + audit seams sit on the
+> call path, with the live-PHI flip, guideline-pack RAG, risk stratification, and draft-order write-back
+> deferred to Phase 2/3 (see below).
 > Parent design: [`ai-clinical-assistant-design.md`](./ai-clinical-assistant-design.md);
 > backlog index: [`feature-backlog.md`](./feature-backlog.md). Note template follows
 > [`f14-followup-tracker.md`](./f14-followup-tracker.md).
@@ -40,14 +47,14 @@ slip a year, then three.
 
 ## Shape (hybrid)
 
-- [ ] **At a Glance** gains two rollup rows fed from the engine:
+- [x] **At a Glance** gains two rollup rows fed from the engine:
   `Vaccines: up to date | N due` and `Screenings: 1 overdue`.
-- [ ] A new collapsible **Health Maintenance** section (peer of `SafetyScan`, below it) lists each
+- [x] A new collapsible **Health Maintenance** section (peer of `SafetyScan`, below it) lists each
   actionable item: a status badge (`overdue` / `due` / `missing`), a one-line detail (last done ·
   cadence), a citation chip to the evidence resource (or "no record on file"), and a Phase-2
-  "draft order" affordance.
-- [ ] **Nothing auto-orders.** Read-only derivation + draft → confirm, consistent with F2 / F5 / F8.
-- [ ] **Quiet by design.** Up-to-date items don't shout; the section returns `null` when there's
+  "draft order" affordance (a non-functional `Draft order` / `Discuss` row for now).
+- [x] **Nothing auto-orders.** Read-only derivation + draft → confirm, consistent with F2 / F5 / F8.
+- [x] **Quiet by design.** Up-to-date items don't shout; the section returns `null` when there's
   nothing actionable, like `SafetyScan`.
 
 ## Data model & engine (build plan)

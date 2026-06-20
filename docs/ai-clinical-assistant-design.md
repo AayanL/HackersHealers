@@ -133,11 +133,12 @@ Adding a feature is the mirror image: drop a folder, add one `register` line, ed
 
 ## 4. The Features
 
-The original Phase-1 set is **F1–F8**. **F9–F14** were captured from clinician interviews after
+The original Phase-1 set is **F1–F8**. **F9–F16** were captured from clinician interviews after
 the first build (see [`feature-backlog.md`](./feature-backlog.md)); each has its own design note.
 **F11, F12, and F13 have a Phase-1 synthetic slice implemented** (deterministic card builders — see
 [`billing-referrals-forms-design.md`](./billing-referrals-forms-design.md) and "Implemented" notes
-there); F9/F10/F14 are deferred.
+there), as do **F15 and F16** (the preventive-care engine — see
+[`preventive-care-design.md`](./preventive-care-design.md)); F9/F10/F14 are deferred.
 
 | Feature | Client/Server | Key FHIR | Phase | Depends on shared infra |
 |---|---|---|---|---|
@@ -155,6 +156,8 @@ there); F9/F10/F14 are deferred.
 | **F12** Standardized e-referrals | Hybrid (eff. server) | Patient, Condition, MedicationRequest, Observation, AllergyIntolerance, DocumentReference (read); ServiceRequest, Task (write, P2) | 2 · *P1 slice done* | + per-destination templates, write broker — [`billing-referrals-forms-design.md`](./billing-referrals-forms-design.md) |
 | **F13** Forms & letters | Hybrid (eff. server) | Patient, Encounter, Condition (read); DocumentReference, QuestionnaireResponse, Provenance (write, P2) | 2 · *P1 slice done* | F6/F3 sibling; template library — [`billing-referrals-forms-design.md`](./billing-referrals-forms-design.md) |
 | **F14** Follow-up tracker | Hybrid | Task, CarePlan, ServiceRequest, DiagnosticReport (read/write, P2) | 2 · *deferred* | F8 ranking; consumes F12 — [`f14-followup-tracker.md`](./f14-followup-tracker.md) |
+| **F15** Immunization status | Hybrid (client engine) | Immunization, Patient (read); ServiceRequest (draft, P2) | 2 · *P1 slice done* | F8/glance sibling; NACI rule table — [`preventive-care-design.md`](./preventive-care-design.md) |
+| **F16** Preventive screening gaps | Hybrid (client engine) | Procedure, Patient, Condition (read); ServiceRequest (draft, P2) | 2 · *P1 slice done* | shares F15 engine; CTFPHC rule table — [`preventive-care-design.md`](./preventive-care-design.md) |
 
 ### F1 — Ask about this patient (grounded chart Q&A)
 - **What / value.** A chat box where a clinician asks free-form questions about the in-context patient and gets answers grounded only in that patient's already-fetched FHIR resources, each claim cited to its source. Collapses the cross-tab scavenger hunt into one verifiable question. *Flagship feature.*
@@ -432,11 +435,13 @@ Today's `meds.html` does **not** honor a single-patient scope: it requests a cro
 | F12 e-referrals | ✅ **synthetic slice** (specialist lookup + form pre-fill + completeness + proposed times, export-only) | ServiceRequest/DocumentReference write + Task tracking | real-PHI assembly + submission |
 | F13 Forms & letters | ✅ **synthetic slice** (draft + completeness check) | DocumentReference/QuestionnaireResponse/Provenance write | PHI hardening |
 | F14 Follow-up tracker | *deferred* | open-loop tracking (consumes F12) | PHI hardening |
+| F15 Immunization status | ✅ **synthetic slice** (NACI age/sex rule table → up-to-date / due, At-a-Glance rollup + section, cited) | guideline-pack RAG + versioning; live Immunization fetch hardening | PHI hardening |
+| F16 Preventive screening gaps | ✅ **synthetic slice** (CTFPHC age/sex rule table → overdue / missing, recommend-against safety, cited) | risk-stratified rules; draft-order write-back through the broker | PHI hardening |
 
-> F9–F14 are post-MVP additions from clinician interviews; see [`feature-backlog.md`](./feature-backlog.md)
-> and the per-feature design notes. F11/F12/F13 "synthetic slice" = the deterministic card builders
-> shipped now (`lib/billing.ts`, `lib/referral.ts`, `lib/forms.ts`); the broker/write/RAG/transport
-> rows remain Phase 2/3.
+> F9–F16 are post-MVP additions from clinician interviews; see [`feature-backlog.md`](./feature-backlog.md)
+> and the per-feature design notes. F11/F12/F13/F15/F16 "synthetic slice" = the deterministic builders
+> shipped now (`lib/billing.ts`, `lib/referral.ts`, `lib/forms.ts`, `lib/preventive.ts`); the
+> broker/write/RAG/transport rows remain Phase 2/3.
 
 ---
 

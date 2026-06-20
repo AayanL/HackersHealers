@@ -31,8 +31,8 @@ implemented yet.**
 | **F12** | Standardized e-referrals | *"Ocean portal", "e-referrals standardizing"* | **Active · P1 slice built** | [`billing-referrals-forms-design.md`](./billing-referrals-forms-design.md) |
 | **F13** | Forms & letters | *"sick notes… disability health credits"* | **Active · P1 slice built** | [`billing-referrals-forms-design.md`](./billing-referrals-forms-design.md) |
 | **F14** | Follow-up / open-loop tracker | *"keep track of resources"* | Deferred (P2) | [`f14-followup-tracker.md`](./f14-followup-tracker.md) |
-| **F15** | Immunization status (At a Glance) | *"vaccination module… whether all the vaccinations are up to date"* | **Active design** | [`preventive-care-design.md`](./preventive-care-design.md) |
-| **F16** | Preventive screening gaps | *"checkups that are required and missing… prostate exam for men over a certain age"* | **Active design** | [`preventive-care-design.md`](./preventive-care-design.md) |
+| **F15** | Immunization status (At a Glance) | *"vaccination module… whether all the vaccinations are up to date"* | **Active · P1 slice built** | [`preventive-care-design.md`](./preventive-care-design.md) |
+| **F16** | Preventive screening gaps | *"checkups that are required and missing… prostate exam for men over a certain age"* | **Active · P1 slice built** | [`preventive-care-design.md`](./preventive-care-design.md) |
 
 - **Active design set:** F11 / F12 / F13 are specced together in
   [`billing-referrals-forms-design.md`](./billing-referrals-forms-design.md); **F15 / F16** (preventive
@@ -43,9 +43,14 @@ implemented yet.**
   ship deterministic, curated-synthetic card builders wired into the assistant (router + AI SDK
   tool + typed card + tests). F12 looks up a specialist, pre-fills + cites the referral form,
   proposes attachments and appointment times, and exports — draft-only, never sent or booked,
-  against a synthetic portal-agnostic template. The batch submit broker, fee-schedule RAG, real
+  against a synthetic portal-agnostic template. **F15 / F16** (`lib/preventive.ts`) add a shared,
+  deterministic age/sex → curated CTFPHC/NACI rule-table engine surfaced as a `HealthMaintenance`
+  section + two At-a-Glance rollups, grounded in `Immunization` / `Procedure` slices and cited;
+  read-only, quiet about up-to-date items, and *quiet about the tests the guideline says not to do*
+  (the prostate PSA "recommend-against" trap). The batch submit broker, fee-schedule RAG, real
   fee schedule, the real (Ocean) referral registry + transport + Bundle envelope + `Task`
-  tracking, write-back, and the capability-registry refactor remain Phase 2/3.
+  tracking, preventive guideline-pack RAG + risk stratification + draft-order write-back, and the
+  capability-registry refactor remain Phase 2/3.
 - **Deferred (parked, do-not-implement-yet):** F9, F10, F14 each have a standalone design note.
 
 ---

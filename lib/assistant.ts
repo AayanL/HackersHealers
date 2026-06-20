@@ -11,6 +11,10 @@ export interface GlanceData {
   resourceCount: number;
   /** Expanded "full summary" bullet lines. When omitted, the demo fallback shows. */
   details?: string[];
+  /** F15 — preventive rollup, e.g. "2 due" or "Up to date". Omitted = no engine data. */
+  vaccines?: string;
+  /** F16 — preventive rollup, e.g. "1 overdue · 1 missing". */
+  screenings?: string;
 }
 
 export interface SafetyAlert {
@@ -20,6 +24,24 @@ export interface SafetyAlert {
   detail?: string;
   evidence: string[];
   rule?: string;
+}
+
+/**
+ * F15/F16 — one actionable (or up-to-date) preventive-care item: an
+ * age/sex-appropriate immunization or screening, with its derived status and
+ * the evidence behind it (a cited resource, or "no record on file").
+ */
+export interface HealthMaintenanceItem {
+  id: string;
+  kind: "immunization" | "screening";
+  status: "overdue" | "due" | "missing" | "up-to-date";
+  title: string;
+  /** "last 2022-05 · every 36 mo", "no record on file", etc. */
+  detail?: string;
+  /** Cited evidence resource refs, or ["no record on file"] when none. */
+  evidence: string[];
+  /** The curated guideline rule id, e.g. "ctfphc-2018-breast". */
+  rule: string;
 }
 
 // --- Rich tool-result cards (F2–F7) ---------------------------------------
@@ -283,6 +305,8 @@ export const SEED_GLANCE: GlanceData = {
   flagged: "K⁺ 5.3 ▲ · eGFR 58 · A1c not on file",
   lastVisit: "2026-06-10",
   resourceCount: 6,
+  // Preventive rollups are merged in from the engine at render time (page.tsx),
+  // so demo and live show the same computed figures; left undefined here.
 };
 
 export const SEED_ALERTS: SafetyAlert[] = [

@@ -49,6 +49,12 @@ export function AtAGlance({ glance }: { glance: GlanceData }) {
             <span className="font-semibold text-[#9a6400]">{glance.allergy}</span>
           </Field>
           <Field label="Flagged">{glance.flagged}</Field>
+          {glance.vaccines ? (
+            <Field label="Vaccines">{glance.vaccines}</Field>
+          ) : null}
+          {glance.screenings ? (
+            <Field label="Screenings">{glance.screenings}</Field>
+          ) : null}
           <Field label="Last visit">
             <span className="font-mono">{glance.lastVisit}</span>
           </Field>

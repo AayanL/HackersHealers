@@ -134,6 +134,30 @@ describe("routeToCard", () => {
     });
   });
 
+  it("titles a vaccine draft order from the named item and marks it a medication", () => {
+    const result = routeToCard(
+      "Draft an order to administer the Pneumococcal vaccine.",
+      ctx,
+    );
+    expect(result?.card).toMatchObject({
+      kind: "draftOrder",
+      title: "Pneumococcal vaccine",
+      orderType: "medication",
+    });
+  });
+
+  it("titles a screening draft order from the named item", () => {
+    const result = routeToCard(
+      "Draft an order for Mammography (breast cancer screening).",
+      ctx,
+    );
+    expect(result?.card).toMatchObject({
+      kind: "draftOrder",
+      title: "Mammography (breast cancer screening)",
+      orderType: "lab",
+    });
+  });
+
   it("routes a billing request to a curated-subset billing card", () => {
     const result = routeToCard("Help me bill this visit.", ctx);
     expect(result?.card?.kind).toBe("billing");
