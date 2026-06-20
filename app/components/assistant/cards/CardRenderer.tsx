@@ -1,5 +1,7 @@
 import type { CardData } from "@/lib/assistant";
+import { BillingCard } from "./BillingCard";
 import { DraftOrderCard } from "./DraftOrderCard";
+import { FormCard } from "./FormCard";
 import { GuidelineCard } from "./GuidelineCard";
 import { NoteCard } from "./NoteCard";
 import { ReconcileCard } from "./ReconcileCard";
@@ -36,6 +38,10 @@ export function CardRenderer({
       return <SummaryCard data={card} {...cite} />;
     case "note":
       return <NoteCard data={card} {...cite} />;
+    case "billing":
+      return <BillingCard data={card} {...cite} />;
+    case "form":
+      return <FormCard data={card} {...cite} />;
     default: {
       const _exhaustive: never = card;
       return _exhaustive;

@@ -131,7 +131,13 @@ Adding a feature is the mirror image: drop a folder, add one `register` line, ed
 
 ---
 
-## 4. The Eight Features
+## 4. The Features
+
+The original Phase-1 set is **F1–F8**. **F9–F14** were captured from clinician interviews after
+the first build (see [`feature-backlog.md`](./feature-backlog.md)); each has its own design note.
+**F11 and F13 have a Phase-1 synthetic slice implemented** (deterministic card builders — see
+[`billing-referrals-forms-design.md`](./billing-referrals-forms-design.md) and "Implemented" notes
+there); F12 is fully designed; F9/F10/F14 are deferred.
 
 | Feature | Client/Server | Key FHIR | Phase | Depends on shared infra |
 |---|---|---|---|---|
@@ -143,6 +149,12 @@ Adding a feature is the mirror image: drop a folder, add one `register` line, ed
 | **F6** Note assistant | Hybrid (eff. server) | Encounter, Condition, MedicationRequest, Observation (read); DocumentReference/Provenance (write, P2) | 1 draft → 2 write | FHIR client, LLM gateway, citation UI, audit |
 | **F7** Guideline & coding lookup | **Needs-server** | Condition, MedicationRequest (read) | 1 → 3 (write-back) | + guideline RAG, terminology client, citation UI |
 | **F8** Proactive alerts | Hybrid | MedicationRequest, Condition, Observation, Allergy (read); Flag/DetectedIssue (write, P2) | 1 read → 2 write → 3 PHI | + terminology-normalization, rule engine, citation UI |
+| **F9** Ambient scribe → note | Hybrid (eff. server) | Encounter, Condition, MedicationRequest, Observation (read); DocumentReference (write, P2) | 2 · *deferred* | + transcription route; builds on F6 — [`f9-ambient-scribe.md`](./f9-ambient-scribe.md) |
+| **F10** AI inbox manager | **Needs-server** | Communication, DiagnosticReport, Observation, DocumentReference, Task (read) | 2/3 · *deferred* | + provider/system scope, server worker — [`f10-ai-inbox-manager.md`](./f10-ai-inbox-manager.md) |
+| **F11** Billing & coding | **Needs-server** | Encounter, Condition, Procedure, Observation, Coverage (read); Claim (write) | 2/3 · *P1 slice done* | + fee-schedule RAG, submit broker, audit — [`billing-referrals-forms-design.md`](./billing-referrals-forms-design.md) |
+| **F12** Standardized e-referrals | Hybrid (eff. server) | Patient, Condition, MedicationRequest, Observation, AllergyIntolerance, DocumentReference (read); ServiceRequest, Task (write, P2) | 2 · *designed* | + per-destination templates, write broker — [`billing-referrals-forms-design.md`](./billing-referrals-forms-design.md) |
+| **F13** Forms & letters | Hybrid (eff. server) | Patient, Encounter, Condition (read); DocumentReference, QuestionnaireResponse, Provenance (write, P2) | 2 · *P1 slice done* | F6/F3 sibling; template library — [`billing-referrals-forms-design.md`](./billing-referrals-forms-design.md) |
+| **F14** Follow-up tracker | Hybrid | Task, CarePlan, ServiceRequest, DiagnosticReport (read/write, P2) | 2 · *deferred* | F8 ranking; consumes F12 — [`f14-followup-tracker.md`](./f14-followup-tracker.md) |
 
 ### F1 — Ask about this patient (grounded chart Q&A)
 - **What / value.** A chat box where a clinician asks free-form questions about the in-context patient and gets answers grounded only in that patient's already-fetched FHIR resources, each claim cited to its source. Collapses the cross-tab scavenger hunt into one verifiable question. *Flagship feature.*
@@ -197,8 +209,8 @@ Adding a feature is the mirror image: drop a folder, add one `register` line, ed
 ### F6 — Documentation / note assistant
 - **What / value.** Pulls the encounter, meds, problems, and recent results to draft a structured progress note and answer "what should I document for this visit?" Turns "pajama-time" charting into editing instead of typing from scratch, and flags documentation gaps.
 - **UX.** Tab in the shared drawer. "Draft progress note" → a SOAP/H&P draft (Subjective/Objective/Assessment/Plan), each line carrying a citation chip that expands to the source resource. A second mode returns a "what to document" checklist. "AI draft — review and edit before signing. Not entered in the chart." Copy-to-note now; "Save as draft note" greyed out until write scope.
-- **FHIR.** Encounter, Condition, MedicationRequest, Observation, Allergy, Patient (read); DocumentReference + Provenance (write, Phase 2 only, `status=preliminary`, never AI-signed).
-- **LLM vs deterministic.** LLM composes prose only. Deterministic: the queries and date-windowing, the citation map, post-generation verbatim validation of drug/dose/values, and a write-back path that only fires on an explicit human click at `status=preliminary`.
+- **FHIR.** Encounter, Condition, MedicationRequest, Observation, Allergy, Patient (read); DocumentReference + Provenance (write, Phase 2 only, `docStatus=preliminary` with `status=current`, never AI-signed). *(`preliminary` is a `Composition`/`DiagnosticReport` status code — it is **not** valid on `DocumentReference.status`; the unsigned state lives on `docStatus`. See F13 in [`billing-referrals-forms-design.md`](./billing-referrals-forms-design.md).)*
+- **LLM vs deterministic.** LLM composes prose only. Deterministic: the queries and date-windowing, the citation map, post-generation verbatim validation of drug/dose/values, and a write-back path that only fires on an explicit human click at `docStatus=preliminary`.
 - **Client/server.** Hybrid, effectively server. Client pulls resources and shows an editable surface; `/api/note-draft` generates; Phase 2 `/api/note-write` brokers the write.
 - **Removability.** Delete its tab, its `/api/note-draft` (and Phase 2 `/api/note-write`) route, and its prompt/validator. The optional write scope is requested incrementally and simply dropped from the OAuth set.
 - **Key risk + guardrail.** Silent omission of a critical item → deterministic "sources considered" list + gap checklist so the clinician sees what was and wasn't pulled, rather than trusting prose completeness.
@@ -414,6 +426,16 @@ Today's `meds.html` does **not** honor a single-patient scope: it requests a cro
 | F6 Note assistant | ✅ draft/copy | DocumentReference + Provenance write | PHI hardening |
 | F7 Guideline & coding | ✅ full on sandbox | — | + Condition.code write-back, PHI gates |
 | F8 Proactive alerts | ✅ read-only strip | Flag/DetectedIssue write + dismissal persistence | PHI/BAA/audit hardening |
+| F9 Ambient scribe | *deferred* | voice → SOAP draft (builds on F6) | PHI hardening |
+| F10 AI inbox manager | *deferred* | server-side triage queue (provider/system scope) | PHI/scope hardening |
+| F11 Billing & coding | ✅ **synthetic slice** (suggest + missing-code catch, curated codes) | batch builder + submit broker on synthetic | real claims to payer (MCEDT/EDT) |
+| F12 e-referrals | draft + export on synthetic | ServiceRequest/DocumentReference write + Task tracking | real-PHI assembly + submission |
+| F13 Forms & letters | ✅ **synthetic slice** (draft + completeness check) | DocumentReference/QuestionnaireResponse/Provenance write | PHI hardening |
+| F14 Follow-up tracker | *deferred* | open-loop tracking (consumes F12) | PHI hardening |
+
+> F9–F14 are post-MVP additions from clinician interviews; see [`feature-backlog.md`](./feature-backlog.md)
+> and the per-feature design notes. F11/F13 "synthetic slice" = the deterministic card builders
+> shipped now (`lib/billing.ts`, `lib/forms.ts`); the broker/write/RAG rows remain Phase 2/3.
 
 ---
 
