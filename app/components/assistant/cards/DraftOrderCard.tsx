@@ -3,8 +3,28 @@
 import { useState } from "react";
 import type { DraftOrderCardData } from "@/lib/assistant";
 import { CardShell } from "./CardShell";
+import { ExportMenu } from "./ExportMenu";
 
 type DraftStatus = "draft" | "confirmed" | "rejected";
+
+/** Plain-text rendering of the order draft for print / copy / download. */
+function orderToText(d: DraftOrderCardData): string {
+  const fields = d.fields.map((f) => `  ${f.label}: ${f.value}`);
+  return [
+    "ORDER DRAFT",
+    "Draft only — review and sign in the EHR's order screen. Not signed.",
+    "",
+    `${d.title}${d.code ? ` · ${d.code}` : ""}`,
+    `Order type: ${d.orderType}`,
+    "",
+    ...fields,
+    ...(d.safety ?? []),
+    "",
+    "Drafted by AI — confirm and sign in the EHR. Nothing is written to the chart from here.",
+  ]
+    .filter((s) => s !== "")
+    .join("\n");
+}
 
 export function DraftOrderCard({
   data,
@@ -32,12 +52,19 @@ export function DraftOrderCard({
       title="Order draft"
       accent="#9a6400"
       headerRight={
-        <span
-          data-testid="draft-status"
-          className={`rounded-[3px] px-[6px] py-[2px] font-mono text-[9.5px] font-bold ${badge.cls}`}
-        >
-          {badge.text}
-        </span>
+        <div className="flex items-center gap-[7px]">
+          <ExportMenu
+            filename="order-draft.txt"
+            title="Order draft"
+            text={orderToText(data)}
+          />
+          <span
+            data-testid="draft-status"
+            className={`rounded-[3px] px-[6px] py-[2px] font-mono text-[9.5px] font-bold ${badge.cls}`}
+          >
+            {badge.text}
+          </span>
+        </div>
       }
     >
       <div className="flex items-center gap-2">

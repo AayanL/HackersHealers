@@ -369,6 +369,15 @@ export interface RouteResult {
   card?: CardData;
 }
 
+/** Pull an explicit order subject from "...order (for|to administer) [the] X". */
+export function orderSubject(text: string): string | null {
+  const m = text.match(
+    /\border\s+(?:to\s+administer|to\s+start|to\s+repeat|for)\s+(?:the\s+)?(.+)$/i,
+  );
+  if (!m) return null;
+  return m[1].replace(/[.?!\s]+$/, "").trim() || null;
+}
+
 /** Pick an F13 form template from free-text intent. */
 export function pickFormTemplate(lower: string): string {
   if (/return.?to.?work|fitness.?to.?work|\brtw\b/.test(lower)) {
@@ -432,15 +441,23 @@ export function routeToCard(
   }
   if (
     /\b(draft|order|repeat|start|place)\b/.test(lower) &&
-    /\b(order|bmp|cmp|cbc|a1c|hba1c|lipid|panel|prescription|rx|medication|lab)\b/.test(lower)
+    /\b(order|bmp|cmp|cbc|a1c|hba1c|lipid|panel|prescription|rx|medication|lab|vaccine|immuniz)\b/.test(
+      lower,
+    )
   ) {
+    // An explicit subject ("...order for the Pneumococcal vaccine") wins over the
+    // lab-name lookup, so a vaccine/screening draft keeps its real title.
+    const subject = orderSubject(text);
     const key = Object.keys(LAB_TITLES).find((k) => lower.includes(k));
     const measure = detectMeasure(lower);
+    const isVaccine = /vaccine|immuniz|zoster|shingl|influenza|\bflu\b|pneumococc/.test(
+      lower,
+    );
     return {
       text: "Drafted — please review and sign in the order screen. I can't place orders myself.",
       card: buildDraftOrder({
-        title: key ? LAB_TITLES[key] : "Lab order",
-        orderType: "lab",
+        title: subject ?? (key ? LAB_TITLES[key] : "Lab order"),
+        orderType: isVaccine ? "medication" : "lab",
         collectDate: /next week/.test(lower) ? "Next week" : undefined,
         reason: measure ? `Recheck ${measure.label}` : undefined,
       }),

@@ -1,5 +1,5 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 import HealthMaintenance from "@/app/components/assistant/HealthMaintenance";
 import type { HealthMaintenanceItem } from "@/lib/assistant";
 
@@ -38,5 +38,21 @@ describe("HealthMaintenance", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("overdue")).toBeInTheDocument();
     expect(screen.getByText("due")).toBeInTheDocument();
+  });
+
+  it("shows no action controls when no handlers are provided", () => {
+    render(<HealthMaintenance items={ITEMS} />);
+    expect(screen.queryByRole("button", { name: /Draft an order/ })).toBeNull();
+  });
+
+  it("fires onDraftOrder with the item when the Draft order button is clicked", () => {
+    const onDraftOrder = vi.fn();
+    render(<HealthMaintenance items={ITEMS} onDraftOrder={onDraftOrder} />);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Draft an order for Pneumococcal vaccine" }),
+    );
+    expect(onDraftOrder).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "pneumococcal" }),
+    );
   });
 });

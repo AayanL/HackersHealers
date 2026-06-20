@@ -116,6 +116,24 @@ export function AssistantDock({
               items={healthMaintenance}
               citationLabels={citationLabels}
               onCitationClick={onCitationClick}
+              onDraftOrder={
+                onSend
+                  ? (item) =>
+                      onSend(
+                        item.kind === "immunization"
+                          ? `Draft an order to administer the ${item.title}.`
+                          : `Draft an order for ${item.title}.`,
+                      )
+                  : undefined
+              }
+              onDiscuss={
+                onSend
+                  ? (item) =>
+                      onSend(
+                        `Is ${item.title} indicated for this patient, and what are the options?`,
+                      )
+                  : undefined
+              }
             />
           </>
         }

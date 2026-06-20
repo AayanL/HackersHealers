@@ -41,10 +41,14 @@ function MaintenanceRow({
   item,
   citationLabels,
   onCitationClick,
+  onDraftOrder,
+  onDiscuss,
 }: {
   item: HealthMaintenanceItem;
   citationLabels?: Record<string, string>;
   onCitationClick?: (ref: string) => void;
+  onDraftOrder?: (item: HealthMaintenanceItem) => void;
+  onDiscuss?: (item: HealthMaintenanceItem) => void;
 }) {
   const [open, setOpen] = useState(false);
   const style = STATUS_STYLE[item.status];
@@ -103,10 +107,30 @@ function MaintenanceRow({
           </span>
         </div>
       ) : null}
-      <div className="mt-[9px] flex gap-3">
-        <span className="text-[11px] font-bold text-[#2756e6]">Draft order</span>
-        <span className="text-[11px] text-[#8a93a2]">Discuss</span>
-      </div>
+      {onDraftOrder || onDiscuss ? (
+        <div className="mt-[9px] flex gap-3">
+          {onDraftOrder ? (
+            <button
+              type="button"
+              onClick={() => onDraftOrder(item)}
+              aria-label={`Draft an order for ${item.title}`}
+              className="cursor-pointer border-none bg-none p-0 text-[11px] font-bold text-[#2756e6] hover:underline"
+            >
+              Draft order
+            </button>
+          ) : null}
+          {onDiscuss ? (
+            <button
+              type="button"
+              onClick={() => onDiscuss(item)}
+              aria-label={`Discuss ${item.title}`}
+              className="cursor-pointer border-none bg-none p-0 text-[11px] text-[#5b6470] hover:underline"
+            >
+              Discuss
+            </button>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -115,10 +139,14 @@ export function HealthMaintenance({
   items,
   citationLabels,
   onCitationClick,
+  onDraftOrder,
+  onDiscuss,
 }: {
   items: HealthMaintenanceItem[];
   citationLabels?: Record<string, string>;
   onCitationClick?: (ref: string) => void;
+  onDraftOrder?: (item: HealthMaintenanceItem) => void;
+  onDiscuss?: (item: HealthMaintenanceItem) => void;
 }) {
   if (items.length === 0) return null;
   return (
@@ -140,6 +168,8 @@ export function HealthMaintenance({
           item={i}
           citationLabels={citationLabels}
           onCitationClick={onCitationClick}
+          onDraftOrder={onDraftOrder}
+          onDiscuss={onDiscuss}
         />
       ))}
     </section>
