@@ -151,6 +151,7 @@ export default function Home() {
       glance={glance}
       alerts={alerts}
       initialMessages={initialMessages}
+      context={context}
       citationLabels={labels}
       resources={resources}
       respond={respond}

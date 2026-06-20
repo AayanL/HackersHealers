@@ -14,6 +14,8 @@ export interface AssistantDockProps {
   messages: ChatMessage[];
   pending?: boolean;
   onSend?: (text: string) => void;
+  /** Patient- and chat-aware composer chips; falls back to defaults when unset. */
+  suggestions?: string[];
   composerPlaceholder?: string;
   citationLabels?: Record<string, string>;
   onCitationClick?: (ref: string) => void;
@@ -34,6 +36,7 @@ export function AssistantDock({
   messages,
   pending,
   onSend,
+  suggestions,
   composerPlaceholder,
   citationLabels,
   onCitationClick,
@@ -107,7 +110,11 @@ export function AssistantDock({
           </>
         }
       />
-      <Composer placeholder={composerPlaceholder} onSend={onSend} />
+      <Composer
+        suggestions={suggestions}
+        placeholder={composerPlaceholder}
+        onSend={onSend}
+      />
     </aside>
   );
 }

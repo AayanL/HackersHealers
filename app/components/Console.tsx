@@ -1,8 +1,10 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import type { ChatMessage, GlanceData, SafetyAlert } from "@/lib/assistant";
+import type { PatientContext } from "@/lib/grounding";
 import { type ResourceDetail, unknownResource } from "@/lib/resources";
+import { buildSuggestions } from "@/lib/suggestions";
 import type { MedView, PatientView } from "@/lib/types";
 import AppBar from "./AppBar";
 import ChartSidebar from "./ChartSidebar";
@@ -21,6 +23,8 @@ export interface ConsoleProps {
   glance?: GlanceData;
   alerts?: SafetyAlert[];
   initialMessages?: ChatMessage[];
+  /** Grounded chart context; drives the patient-aware composer suggestions. */
+  context?: PatientContext;
   /** Resource ref → human label, for resolving inline citation chips. */
   citationLabels?: Record<string, string>;
   /** Resource ref → full detail, opened in the reference drawer on click. */
@@ -49,6 +53,7 @@ export function Console({
   glance,
   alerts = [],
   initialMessages = [],
+  context,
   citationLabels,
   resources = {},
   respond,
@@ -84,6 +89,13 @@ export function Console({
 
   const firstName = patient.name.split(/\s+/)[0] || "the patient";
 
+  // Composer chips: derived from the chart and narrowed by what the chat has
+  // already covered. Undefined (no context) → the Composer's static defaults.
+  const suggestions = useMemo(
+    () => (context ? buildSuggestions(context, messages) : undefined),
+    [context, messages],
+  );
+
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-[#e9ecf1] font-sans text-[#15181d]">
       <DemoBanner dataMode={dataMode} />
@@ -106,6 +118,7 @@ export function Console({
           messages={messages}
           pending={pending}
           onSend={handleSend}
+          suggestions={suggestions}
           composerPlaceholder={`Ask about ${firstName}…`}
           citationLabels={citationLabels}
           onCitationClick={setSelectedRef}
