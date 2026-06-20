@@ -4,7 +4,14 @@
 // so it is imported lazily inside functions (never at module top) to keep it out
 // of any server bundle.
 
-import type { Bundle, MedicationRequest, Patient } from "./types";
+import type { ContextObservation, ContextProblem } from "./grounding";
+import type {
+  Bundle,
+  Condition,
+  MedicationRequest,
+  Observation,
+  Patient,
+} from "./types";
 
 /** Any client id works against the open SMART sandbox (launch.smarthealthit.org). */
 export const SMART_CLIENT_ID = "vera_clinical_assistant";
@@ -13,6 +20,8 @@ export const SMART_SCOPE = "launch openid fhirUser patient/*.read";
 export interface ChartData {
   patient: Patient;
   medications: MedicationRequest[];
+  problems: ContextProblem[];
+  observations: ContextObservation[];
 }
 
 /** Kick off the SMART App Launch authorize redirect (call from /launch). */
@@ -25,16 +34,64 @@ export async function smartAuthorize(redirectUri = "/"): Promise<void> {
   });
 }
 
-/** Complete the handshake and load the in-context patient + medications. */
+function conceptText(c: Condition["code"]): string {
+  return c?.text ?? c?.coding?.[0]?.display ?? c?.coding?.[0]?.code ?? "Problem";
+}
+
+function toContextProblem(c: Condition): ContextProblem {
+  return { name: conceptText(c.code), ref: `Condition/${c.id ?? ""}` };
+}
+
+function toContextObservation(o: Observation): ContextObservation | null {
+  const value = o.valueQuantity?.value;
+  if (typeof value !== "number") return null; // skip non-numeric (e.g. panels)
+  return {
+    code: o.code?.coding?.[0]?.code,
+    label: o.code?.text ?? o.code?.coding?.[0]?.display ?? "Result",
+    value,
+    unit: o.valueQuantity?.unit ?? "",
+    date: (o.effectiveDateTime ?? "").slice(0, 10),
+    ref: `Observation/${o.id ?? ""}`,
+  };
+}
+
+/** Complete the handshake and load the in-context patient + chart slices. */
 export async function loadChart(): Promise<ChartData> {
   const FHIR = (await import("fhirclient")).default;
   const client = await FHIR.oauth2.ready();
   const patient = (await client.patient.read()) as Patient;
+  const id = client.patient.id;
+
   const bundle = (await client.request(
-    `MedicationRequest?patient=${client.patient.id}`,
+    `MedicationRequest?patient=${id}`,
   )) as Bundle<MedicationRequest>;
   const medications = (bundle.entry ?? []).map(
     (e) => e.resource as MedicationRequest,
   );
-  return { patient, medications };
+
+  // Problems + labs are best-effort: a sandbox patient may not have them, and a
+  // missing slice should degrade gracefully (empty), never break the launch.
+  let problems: ContextProblem[] = [];
+  try {
+    const cb = (await client.request(
+      `Condition?patient=${id}`,
+    )) as Bundle<Condition>;
+    problems = (cb.entry ?? []).map((e) => toContextProblem(e.resource));
+  } catch {
+    problems = [];
+  }
+
+  let observations: ContextObservation[] = [];
+  try {
+    const ob = (await client.request(
+      `Observation?patient=${id}&category=laboratory`,
+    )) as Bundle<Observation>;
+    observations = (ob.entry ?? [])
+      .map((e) => toContextObservation(e.resource))
+      .filter((o): o is ContextObservation => o !== null);
+  } catch {
+    observations = [];
+  }
+
+  return { patient, medications, problems, observations };
 }

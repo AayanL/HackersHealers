@@ -8,14 +8,20 @@ import {
   SEED_GLANCE,
   type ChatMessage,
 } from "@/lib/assistant";
-import { streamChat } from "@/lib/chat-client";
+import { sendChat } from "@/lib/chat-client";
 import { mapMedications, patientView } from "@/lib/fhir";
-import { buildPatientContext } from "@/lib/grounding";
+import {
+  buildPatientContext,
+  type ContextObservation,
+  type ContextProblem,
+} from "@/lib/grounding";
 import {
   SEED_ALLERGIES,
   SEED_CODE_STATUS,
   SEED_MEDICATIONS,
+  SEED_OBSERVATIONS,
   SEED_PATIENT,
+  SEED_PROBLEMS,
 } from "@/lib/seed";
 import { loadChart } from "@/lib/smart";
 import type {
@@ -30,6 +36,8 @@ interface ChartView {
   meds: MedView[];
   allergies: string[];
   codeStatus: string;
+  problems: ContextProblem[];
+  observations: ContextObservation[];
 }
 
 function toView(
@@ -37,12 +45,16 @@ function toView(
   meds: MedicationRequest[],
   allergies: string[],
   codeStatus: string,
+  problems: ContextProblem[],
+  observations: ContextObservation[],
 ): ChartView {
   return {
     patient: patientView(patient),
     meds: mapMedications(meds),
     allergies,
     codeStatus,
+    problems,
+    observations,
   };
 }
 
@@ -51,6 +63,8 @@ const DEMO_VIEW = toView(
   SEED_MEDICATIONS,
   SEED_ALLERGIES,
   SEED_CODE_STATUS,
+  SEED_PROBLEMS,
+  SEED_OBSERVATIONS,
 );
 
 export default function Home() {
@@ -61,9 +75,18 @@ export default function Home() {
   useEffect(() => {
     let cancelled = false;
     loadChart()
-      .then(({ patient, medications }) => {
+      .then(({ patient, medications, problems, observations }) => {
         if (!cancelled) {
-          setView(toView(patient, medications, [], "Code status unknown"));
+          setView(
+            toView(
+              patient,
+              medications,
+              [],
+              "Code status unknown",
+              problems,
+              observations,
+            ),
+          );
         }
       })
       .catch(() => {
@@ -76,7 +99,16 @@ export default function Home() {
 
   const respond = useCallback(
     (text: string, history: ChatMessage[]) =>
-      streamChat(text, history, buildPatientContext(view.patient, view.meds)),
+      sendChat(
+        text,
+        history,
+        buildPatientContext(
+          view.patient,
+          view.meds,
+          view.problems,
+          view.observations,
+        ),
+      ),
     [view],
   );
 

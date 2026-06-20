@@ -48,6 +48,22 @@ export interface MedicationRequest {
   subject?: { reference?: string };
 }
 
+export interface Condition {
+  resourceType?: "Condition";
+  id?: string;
+  code?: FhirCodeableConcept;
+  clinicalStatus?: FhirCodeableConcept;
+}
+
+export interface Observation {
+  resourceType?: "Observation";
+  id?: string;
+  code?: FhirCodeableConcept;
+  valueQuantity?: { value?: number; unit?: string };
+  effectiveDateTime?: string;
+  category?: FhirCodeableConcept[];
+}
+
 export interface Bundle<T> {
   resourceType?: "Bundle";
   entry?: { resource: T }[];

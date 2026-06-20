@@ -1,5 +1,8 @@
 import { anthropic } from "@ai-sdk/anthropic";
-import { streamText } from "ai";
+import { generateText, stepCountIs } from "ai";
+import type { CardData } from "@/lib/assistant";
+import type { PatientContext } from "@/lib/grounding";
+import { buildAssistantTools, routeToCard } from "@/lib/tools";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -12,39 +15,66 @@ const SYSTEM_PROMPT = `You are VERA, a clinical decision-support assistant embed
 
 Rules:
 - Answer ONLY from the patient context provided below. If something is not in the chart, say so plainly ("I don't see that in this chart").
-- Cite the FHIR resource behind each clinical claim, e.g. [MedicationRequest/lisinopril], [Condition/I10], [Observation].
+- Cite the FHIR resource behind each clinical claim, e.g. [MedicationRequest/lisinopril], [Condition/I10], [Observation/k].
 - You are decision support, not a medical device. Never place orders or sign anything; you may draft for the clinician to confirm.
-- Never fabricate medications, doses, labs, or diagnoses. Be concise and clinical.`;
+- Never fabricate medications, doses, labs, or diagnoses. Be concise and clinical.
+
+Tools — anything actionable or numeric must be returned as a card, not prose:
+- Reconcile / double-check / review meds → call reconcile_medications.
+- Show a lab value over time (potassium, creatinine, A1c, …) → call show_lab_trend.
+- Draft/repeat an order or prescription → call draft_order (it only drafts; the clinician confirms).
+- Summarize / handoff / SBAR → call summarize_patient.
+- Draft a progress note / "what to document" → call draft_note.
+- Guideline/monitoring questions or code suggestions (ICD-10/SNOMED) → call suggest_codes_and_guidance.
+After a tool runs, add one or two sentences of narration. For plain questions, answer in text with citations.`;
 
 interface IncomingMessage {
   role: "user" | "assistant";
   text: string;
 }
 
+const EMPTY_CONTEXT: PatientContext = {
+  patient: { name: "", sexAge: "", dob: "", mrn: "" },
+  medications: [],
+  problems: [],
+  observations: [],
+};
+
 export async function POST(req: Request) {
   const { messages = [], patientContext } = (await req.json()) as {
     messages?: IncomingMessage[];
-    patientContext?: unknown;
+    patientContext?: PatientContext;
   };
+  const ctx = patientContext ?? EMPTY_CONTEXT;
+  const convo = messages.filter(
+    (m) => m.role === "user" || m.role === "assistant",
+  );
+  const lastUser = [...convo].reverse().find((m) => m.role === "user")?.text ?? "";
 
+  // No key → run the deterministic capability router (no model). Cards still
+  // work; free-text questions return a configuration notice.
   if (!process.env.ANTHROPIC_API_KEY) {
-    return new Response(
-      "The assistant isn't configured yet — set ANTHROPIC_API_KEY to enable grounded answers.",
-      { status: 200, headers: { "content-type": "text/plain; charset=utf-8" } },
-    );
+    const routed = routeToCard(lastUser, ctx);
+    return Response.json({
+      text:
+        routed?.text ??
+        "The assistant isn't fully configured — set ANTHROPIC_API_KEY for live free-text answers. Card actions (reconcile, trend, draft, summary, note, coding) work without it.",
+      card: routed?.card ?? null,
+    });
   }
 
-  const result = streamText({
+  const collector: { card?: CardData } = {};
+  const result = await generateText({
     model: anthropic(MODEL),
     system: `${SYSTEM_PROMPT}\n\n<patient_context>\n${JSON.stringify(
-      patientContext ?? {},
+      ctx,
       null,
       2,
     )}\n</patient_context>`,
-    messages: messages
-      .filter((m) => m.role === "user" || m.role === "assistant")
-      .map((m) => ({ role: m.role, content: m.text })),
+    messages: convo.map((m) => ({ role: m.role, content: m.text })),
+    tools: buildAssistantTools(ctx, collector),
+    stopWhen: stepCountIs(5),
   });
 
-  return result.toTextStreamResponse();
+  return Response.json({ text: result.text, card: collector.card ?? null });
 }

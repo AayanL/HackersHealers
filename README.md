@@ -52,17 +52,21 @@ works standalone (and on Vercel) out of the box.
   assistant message's `card` payload.
 - **FHIR layer** — `lib/fhir.ts` (pure view-model helpers, unit-tested), `lib/smart.ts`
   (client-only `fhirclient` calls), `lib/seed.ts` (synthetic demo chart).
-- **AI gateway** — `app/api/chat/route.ts` runs the AI SDK `streamText` server-side
-  (the `ANTHROPIC_API_KEY` never reaches the browser). Default model `claude-opus-4-8`;
-  switch providers (OpenAI / Google) in one line. `lib/grounding.ts` builds the
-  single-patient context; `lib/chat-client.ts` streams the reply into the dock.
+- **AI gateway + tools** — `app/api/chat/route.ts` runs the AI SDK `generateText`
+  server-side with a set of `tool()`s (`lib/tools.ts`); the model *chooses* a capability
+  and narrates, while each tool's `execute` builds the typed card **deterministically**
+  from the grounded context (so a dose/code can't be a hallucination). The
+  `ANTHROPIC_API_KEY` never reaches the browser. Default model `claude-opus-4-8`; switch
+  providers (OpenAI / Google) in one line. `lib/grounding.ts` builds the single-patient
+  context (patient · meds · problems · labs); `lib/chat-client.ts` (`sendChat`) returns
+  the `{ text, card }` turn into the dock. **No key?** the same builders run via a
+  keyword router (`routeToCard`), so card actions work without a model.
 
-**Status:** the EHR shell, SMART launch, safety scan (F8), and **F1 (grounded "ask about
-this patient")** are wired end-to-end through the live gateway. The richer tool-result
-cards (F2 reconcile table, F4 trend chart, F5 draft-order, F7 guideline+coding, F3
-SBAR/patient summary, F6 SOAP note) are built as typed components and shown in the seeded
-demo transcript; live model-driven population of each card is the next step (the model
-returns a `card` payload per the registry's tool schema).
+**Status:** the EHR shell, SMART launch, safety scan (F8), **F1 (grounded chat)**, and the
+**F2–F7 tool-result cards** are all wired end-to-end. The model calls the matching tool
+(reconcile, trend, draft-order, guideline+coding, SBAR/patient summary, SOAP note) and the
+deterministic builder returns the typed card grounded in the in-context patient — verified
+live against the Anthropic API and, keyless, via the deterministic router.
 
 ## Deploy to Vercel
 
