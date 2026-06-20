@@ -16,8 +16,10 @@ F1–F8: built and demoed on synthetic data with the de-identification + audit s
 path, and the live-PHI flip gated to **Phase 2/3** (BAA, write-scope governance, audit).
 
 This file is an **index**. Each feature's full detail — build checklist, FHIR mapping,
-removability, 10× target, phase, open questions — lives in the linked doc. **Nothing here is
-implemented yet.**
+removability, 10× target, phase, open questions — lives in the linked doc.
+
+> For a problem-first view (each clinician pain → the feature that solves it → status), see
+> [`problems-and-solutions.md`](./problems-and-solutions.md).
 
 ---
 
