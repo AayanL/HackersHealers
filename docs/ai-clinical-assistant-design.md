@@ -135,9 +135,9 @@ Adding a feature is the mirror image: drop a folder, add one `register` line, ed
 
 The original Phase-1 set is **F1–F8**. **F9–F14** were captured from clinician interviews after
 the first build (see [`feature-backlog.md`](./feature-backlog.md)); each has its own design note.
-**F11 and F13 have a Phase-1 synthetic slice implemented** (deterministic card builders — see
+**F11, F12, and F13 have a Phase-1 synthetic slice implemented** (deterministic card builders — see
 [`billing-referrals-forms-design.md`](./billing-referrals-forms-design.md) and "Implemented" notes
-there); F12 is fully designed; F9/F10/F14 are deferred.
+there); F9/F10/F14 are deferred.
 
 | Feature | Client/Server | Key FHIR | Phase | Depends on shared infra |
 |---|---|---|---|---|
@@ -152,7 +152,7 @@ there); F12 is fully designed; F9/F10/F14 are deferred.
 | **F9** Ambient scribe → note | Hybrid (eff. server) | Encounter, Condition, MedicationRequest, Observation (read); DocumentReference (write, P2) | 2 · *deferred* | + transcription route; builds on F6 — [`f9-ambient-scribe.md`](./f9-ambient-scribe.md) |
 | **F10** AI inbox manager | **Needs-server** | Communication, DiagnosticReport, Observation, DocumentReference, Task (read) | 2/3 · *deferred* | + provider/system scope, server worker — [`f10-ai-inbox-manager.md`](./f10-ai-inbox-manager.md) |
 | **F11** Billing & coding | **Needs-server** | Encounter, Condition, Procedure, Observation, Coverage (read); Claim (write) | 2/3 · *P1 slice done* | + fee-schedule RAG, submit broker, audit — [`billing-referrals-forms-design.md`](./billing-referrals-forms-design.md) |
-| **F12** Standardized e-referrals | Hybrid (eff. server) | Patient, Condition, MedicationRequest, Observation, AllergyIntolerance, DocumentReference (read); ServiceRequest, Task (write, P2) | 2 · *designed* | + per-destination templates, write broker — [`billing-referrals-forms-design.md`](./billing-referrals-forms-design.md) |
+| **F12** Standardized e-referrals | Hybrid (eff. server) | Patient, Condition, MedicationRequest, Observation, AllergyIntolerance, DocumentReference (read); ServiceRequest, Task (write, P2) | 2 · *P1 slice done* | + per-destination templates, write broker — [`billing-referrals-forms-design.md`](./billing-referrals-forms-design.md) |
 | **F13** Forms & letters | Hybrid (eff. server) | Patient, Encounter, Condition (read); DocumentReference, QuestionnaireResponse, Provenance (write, P2) | 2 · *P1 slice done* | F6/F3 sibling; template library — [`billing-referrals-forms-design.md`](./billing-referrals-forms-design.md) |
 | **F14** Follow-up tracker | Hybrid | Task, CarePlan, ServiceRequest, DiagnosticReport (read/write, P2) | 2 · *deferred* | F8 ranking; consumes F12 — [`f14-followup-tracker.md`](./f14-followup-tracker.md) |
 
@@ -429,13 +429,14 @@ Today's `meds.html` does **not** honor a single-patient scope: it requests a cro
 | F9 Ambient scribe | *deferred* | voice → SOAP draft (builds on F6) | PHI hardening |
 | F10 AI inbox manager | *deferred* | server-side triage queue (provider/system scope) | PHI/scope hardening |
 | F11 Billing & coding | ✅ **synthetic slice** (suggest + missing-code catch, curated codes) | batch builder + submit broker on synthetic | real claims to payer (MCEDT/EDT) |
-| F12 e-referrals | draft + export on synthetic | ServiceRequest/DocumentReference write + Task tracking | real-PHI assembly + submission |
+| F12 e-referrals | ✅ **synthetic slice** (specialist lookup + form pre-fill + completeness + proposed times, export-only) | ServiceRequest/DocumentReference write + Task tracking | real-PHI assembly + submission |
 | F13 Forms & letters | ✅ **synthetic slice** (draft + completeness check) | DocumentReference/QuestionnaireResponse/Provenance write | PHI hardening |
 | F14 Follow-up tracker | *deferred* | open-loop tracking (consumes F12) | PHI hardening |
 
 > F9–F14 are post-MVP additions from clinician interviews; see [`feature-backlog.md`](./feature-backlog.md)
-> and the per-feature design notes. F11/F13 "synthetic slice" = the deterministic card builders
-> shipped now (`lib/billing.ts`, `lib/forms.ts`); the broker/write/RAG rows remain Phase 2/3.
+> and the per-feature design notes. F11/F12/F13 "synthetic slice" = the deterministic card builders
+> shipped now (`lib/billing.ts`, `lib/referral.ts`, `lib/forms.ts`); the broker/write/RAG/transport
+> rows remain Phase 2/3.
 
 ---
 

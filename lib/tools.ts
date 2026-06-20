@@ -32,6 +32,7 @@ import type {
   PatientContext,
 } from "./grounding";
 import { buildInteractions, checkInteractions } from "./interactions";
+import { buildReferral } from "./referral";
 
 // --- shared helpers --------------------------------------------------------
 
@@ -398,6 +399,18 @@ export function routeToCard(
       card: buildBilling(ctx),
     };
   }
+  // Referral before forms: a "referral letter" contains "letter" (a forms
+  // keyword), and "note for the specialist" contains "note".
+  if (
+    /\brefer(s|rals?|red|ring)?\b|\bconsult\b|specialist|cardiolog|nephrolog|endocrinolog|respirolog|pulmonolog|rheumatolog|psychiatr|gastroenterolog|dermatolog|neurolog|orthop|book\b.*\bappointment\b/.test(
+      lower,
+    )
+  ) {
+    return {
+      text: "Draft referral package — review and complete before sending. Not sent.",
+      card: buildReferral(ctx, lower),
+    };
+  }
   // Forms before the note branch, because "sick note" contains "note".
   if (/sick ?note|work ?note|return.?to.?work|fitness.?to.?work|attestation|disability|\bletter\b|\bform\b/.test(lower)) {
     return {
@@ -563,6 +576,22 @@ export function buildAssistantTools(
         additionalProperties: false,
       }),
       execute: async ({ template }) => emit(buildForm(ctx, template ?? "sick-note")),
+    }),
+    draft_referral: tool({
+      description:
+        "Assemble a draft specialist REFERRAL package from the chart: pick the destination specialty (look up candidate specialists), pre-fill and cite the referral form / ServiceRequest fields, propose supporting attachments, flag missing required fields, and suggest appointment times. Draft + export only — never auto-sent and never auto-booked; the clinician reviews and completes. Uses a SYNTHETIC, portal-agnostic destination template and a synthetic specialist directory. Optionally pass the requested specialty; otherwise it is inferred from the charted problems.",
+      inputSchema: jsonSchema<{ specialty?: string }>({
+        type: "object",
+        properties: {
+          specialty: {
+            type: "string",
+            description:
+              "Requested specialty, e.g. cardiology, nephrology, endocrinology, respirology. Omit to infer from the chart.",
+          },
+        },
+        additionalProperties: false,
+      }),
+      execute: async ({ specialty }) => emit(buildReferral(ctx, specialty ?? null)),
     }),
   };
 }

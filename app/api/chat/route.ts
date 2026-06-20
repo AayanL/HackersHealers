@@ -29,6 +29,7 @@ Tools — anything actionable or numeric must be returned as a card, not prose:
 - Guideline/monitoring questions or code suggestions (ICD-10/SNOMED) → call suggest_codes_and_guidance.
 - Billing / fee codes / build a claim / "how do I bill this" → call suggest_billing_codes (curated SYNTHETIC fee subset, not a real fee schedule — say so; never submit).
 - Sick note / return-to-work / attestation / patient letter or form → call generate_form (draft only, review before issuing; minimum-necessary disclosure).
+- Refer to a specialist / referral / "find a specialist and book" / consult request → call draft_referral (synthetic destination + directory; pre-fills and cites the form, proposes attachments and appointment times; draft + export only — never auto-sends and never books).
 When a tool returns a card, the card already shows the structured detail — so keep your narration to ONE short sentence and do NOT restate the card's contents (don't re-type the SBAR, the table, the order fields, etc.) in prose. Lead with the card; only add a brief caveat if something important isn't captured by it. For plain (non-card) questions, answer concisely; you may use light markdown — **bold** and simple "- " bullet lists — and cite resources inline.`;
 
 interface IncomingMessage {

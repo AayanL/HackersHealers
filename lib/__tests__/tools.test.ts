@@ -100,6 +100,8 @@ describe("routeToCard", () => {
     ["Draft a progress note for today.", "note"],
     ["What should I monitor on metformin, and suggest a code?", "guideline"],
     ["Suggest billing codes for today's visit.", "billing"],
+    ["Refer her to cardiology.", "referral"],
+    ["Find a specialist and book an appointment.", "referral"],
     ["Write a sick note for her.", "form"],
     ["Draft a return-to-work letter.", "form"],
     ["Why is she on lisinopril?", null],
@@ -146,6 +148,20 @@ describe("routeToCard", () => {
     if (result?.card?.kind === "form") {
       expect(result.card.template).toBe("attestation");
     }
+  });
+
+  it("routes a referral and picks the specialty from intent", () => {
+    const result = routeToCard("Refer her to nephrology please.", ctx);
+    expect(result?.card?.kind).toBe("referral");
+    if (result?.card?.kind === "referral") {
+      expect(result.card.specialty).toBe("Nephrology");
+    }
+  });
+
+  it("routes a 'referral letter' to the referral card, not a form", () => {
+    // "letter" is also a forms keyword — referral must win for a referral letter.
+    const result = routeToCard("Draft a referral letter to a specialist.", ctx);
+    expect(result?.card?.kind).toBe("referral");
   });
 });
 

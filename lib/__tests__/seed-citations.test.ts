@@ -36,6 +36,12 @@ function cardRefs(card: CardData): string[] {
       ];
     case "form":
       return card.fields.flatMap((f) => (f.ref ? [f.ref] : []));
+    case "referral":
+      return [
+        ...(card.reasonRef ? [card.reasonRef] : []),
+        ...card.fields.flatMap((f) => (f.ref ? [f.ref] : [])),
+        ...card.attachments.flatMap((a) => (a.ref ? [a.ref] : [])),
+      ];
     case "draftOrder":
       return [];
   }
