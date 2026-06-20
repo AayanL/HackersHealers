@@ -1,16 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import type { ChatMessage, GlanceData, SafetyAlert } from "@/lib/assistant";
+import type {
+  ChatMessage,
+  GlanceData,
+  HealthMaintenanceItem,
+  SafetyAlert,
+} from "@/lib/assistant";
 import AtAGlance from "./AtAGlance";
 import Composer from "./Composer";
 import Conversation from "./Conversation";
+import HealthMaintenance from "./HealthMaintenance";
 import SafetyScan from "./SafetyScan";
 
 export interface AssistantDockProps {
   patientLabel: string;
   glance?: GlanceData;
   alerts?: SafetyAlert[];
+  healthMaintenance?: HealthMaintenanceItem[];
   messages: ChatMessage[];
   pending?: boolean;
   onSend?: (text: string) => void;
@@ -31,6 +38,7 @@ export function AssistantDock({
   patientLabel,
   glance,
   alerts = [],
+  healthMaintenance = [],
   messages,
   pending,
   onSend,
@@ -104,6 +112,11 @@ export function AssistantDock({
           <>
             {glance ? <AtAGlance glance={glance} /> : null}
             <SafetyScan alerts={alerts} />
+            <HealthMaintenance
+              items={healthMaintenance}
+              citationLabels={citationLabels}
+              onCitationClick={onCitationClick}
+            />
           </>
         }
       />

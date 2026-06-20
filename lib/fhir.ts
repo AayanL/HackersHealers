@@ -3,11 +3,17 @@
 // lib/smart.ts (client-only).
 
 import type {
+  ContextImmunization,
+  ContextProcedure,
+} from "./grounding";
+import type {
   Bundle,
+  Immunization,
   MedicationRequest,
   MedView,
   Patient,
   PatientView,
+  Procedure,
 } from "./types";
 
 export function patientName(p: Patient | undefined | null): string {
@@ -120,4 +126,39 @@ export function mapMedications(
 
 export function activeCount(meds: MedView[]): number {
   return meds.filter((m) => m.status === "active").length;
+}
+
+function bundleList<T>(source: Bundle<T> | T[]): T[] {
+  return Array.isArray(source) ? source : (source?.entry ?? []).map((e) => e.resource);
+}
+
+/** F15 — Immunization Bundle/array → cited context items (drops id-less + errors). */
+export function mapImmunizations(
+  source: Bundle<Immunization> | Immunization[],
+): ContextImmunization[] {
+  return bundleList(source)
+    .filter((i) => i.id && i.status !== "entered-in-error")
+    .map((i) => ({
+      ref: `Immunization/${i.id}`,
+      code: i.vaccineCode?.coding?.[0]?.code,
+      label:
+        i.vaccineCode?.text ??
+        i.vaccineCode?.coding?.[0]?.display ??
+        "Immunization",
+      date: (i.occurrenceDateTime ?? "").slice(0, 10),
+    }));
+}
+
+/** F16 — Procedure Bundle/array → cited context items (drops id-less + errors). */
+export function mapProcedures(
+  source: Bundle<Procedure> | Procedure[],
+): ContextProcedure[] {
+  return bundleList(source)
+    .filter((p) => p.id && p.status !== "entered-in-error")
+    .map((p) => ({
+      ref: `Procedure/${p.id}`,
+      code: p.code?.coding?.[0]?.code,
+      label: p.code?.text ?? p.code?.coding?.[0]?.display ?? "Procedure",
+      date: (p.performedDateTime ?? p.performedPeriod?.start ?? "").slice(0, 10),
+    }));
 }

@@ -4,13 +4,21 @@
 // so it is imported lazily inside functions (never at module top) to keep it out
 // of any server bundle.
 
-import type { ContextObservation, ContextProblem } from "./grounding";
+import { mapImmunizations, mapProcedures } from "./fhir";
+import type {
+  ContextImmunization,
+  ContextObservation,
+  ContextProblem,
+  ContextProcedure,
+} from "./grounding";
 import type {
   Bundle,
   Condition,
+  Immunization,
   MedicationRequest,
   Observation,
   Patient,
+  Procedure,
 } from "./types";
 
 /** Any client id works against the open SMART sandbox (launch.smarthealthit.org). */
@@ -22,6 +30,8 @@ export interface ChartData {
   medications: MedicationRequest[];
   problems: ContextProblem[];
   observations: ContextObservation[];
+  immunizations: ContextImmunization[];
+  procedures: ContextProcedure[];
 }
 
 /** Kick off the SMART App Launch authorize redirect (call from /launch). */
@@ -97,5 +107,28 @@ export async function loadChart(): Promise<ChartData> {
     observations = [];
   }
 
-  return { patient, medications, problems, observations };
+  // Immunizations + procedures power the F15/F16 preventive engine; also
+  // best-effort — many sandboxes lack these resources, so a miss degrades to
+  // empty (engine then reports everything as due/missing) rather than breaking.
+  let immunizations: ContextImmunization[] = [];
+  try {
+    const ib = (await client.request(
+      `Immunization?patient=${id}`,
+    )) as Bundle<Immunization>;
+    immunizations = mapImmunizations(ib);
+  } catch {
+    immunizations = [];
+  }
+
+  let procedures: ContextProcedure[] = [];
+  try {
+    const pb = (await client.request(
+      `Procedure?patient=${id}`,
+    )) as Bundle<Procedure>;
+    procedures = mapProcedures(pb);
+  } catch {
+    procedures = [];
+  }
+
+  return { patient, medications, problems, observations, immunizations, procedures };
 }
