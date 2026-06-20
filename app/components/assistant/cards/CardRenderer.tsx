@@ -5,6 +5,7 @@ import { FormCard } from "./FormCard";
 import { GuidelineCard } from "./GuidelineCard";
 import { NoteCard } from "./NoteCard";
 import { ReconcileCard } from "./ReconcileCard";
+import { ReferralCard } from "./ReferralCard";
 import { SummaryCard } from "./SummaryCard";
 import { TrendCard } from "./TrendCard";
 
@@ -42,6 +43,8 @@ export function CardRenderer({
       return <BillingCard data={card} {...cite} />;
     case "form":
       return <FormCard data={card} {...cite} />;
+    case "referral":
+      return <ReferralCard data={card} {...cite} />;
     default: {
       const _exhaustive: never = card;
       return _exhaustive;

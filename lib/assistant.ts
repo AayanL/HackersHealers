@@ -190,6 +190,70 @@ export interface FormCardData {
   disclosureNote: string;
 }
 
+/** F12 — a candidate specialist from the (synthetic) directory. */
+export interface ReferralCandidate {
+  id: string;
+  name: string;
+  clinic: string;
+  /** Typical wait, human text, e.g. "~4 weeks". */
+  wait: string;
+  /** Marks the auto-selected destination. */
+  selected?: boolean;
+}
+
+/** F12 — one pre-filled (or to-complete) field on the referral request. */
+export interface ReferralField {
+  key: string;
+  label: string;
+  /** Prefilled value, or null when the clinician must complete it. */
+  value: string | null;
+  /** Source FHIR resource for chart-derived fields, for a citation chip. */
+  ref?: string;
+}
+
+/** F12 — a supporting document proposed for the referral envelope. */
+export interface ReferralAttachment {
+  id: string;
+  label: string;
+  /** Found in the chart vs. required-but-missing. */
+  present: boolean;
+  /** Source resource when present, for a citation chip. */
+  ref?: string;
+  note?: string;
+}
+
+/** F12 — a proposed (never-booked) appointment time. */
+export interface ReferralSlot {
+  id: string;
+  date: string;
+  time: string;
+  mode: string;
+}
+
+export interface ReferralCardData {
+  kind: "referral";
+  /** Chosen specialty / service requested (maps to ServiceRequest.code). */
+  specialty: string;
+  /** Reason for referral (human text). */
+  reason: string;
+  /** Cited Condition behind the reason. */
+  reasonRef?: string;
+  /** Candidate specialists from the synthetic directory (first = selected). */
+  candidates: ReferralCandidate[];
+  /** Structured ServiceRequest field table, each cited where chart-derived. */
+  fields: ReferralField[];
+  /** Supporting documents — present in chart + required-but-missing. */
+  attachments: ReferralAttachment[];
+  /** Proposed appointment timings — never booked. */
+  slots: ReferralSlot[];
+  /** Deterministic referral-letter body with [bracketed] blanks. */
+  letter: string;
+  /** Required fields/attachments the chart could not fill (completeness check). */
+  toComplete: string[];
+  /** Draft-only / not-sent disclosure note. */
+  disclosureNote: string;
+}
+
 export type CardData =
   | ReconcileCardData
   | TrendCardData
@@ -198,7 +262,8 @@ export type CardData =
   | SummaryCardData
   | NoteCardData
   | BillingCardData
-  | FormCardData;
+  | FormCardData
+  | ReferralCardData;
 
 export interface ChatMessage {
   id: string;

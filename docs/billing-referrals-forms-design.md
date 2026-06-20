@@ -141,6 +141,25 @@ Delete `capabilities/billing-coding/` and its single `register(...)` line in the
 
 ## F12 — Standardized e-referrals
 
+> **✅ Implemented — Phase-1 synthetic slice.** `lib/referral.ts` (`buildReferral` + a SYNTHETIC,
+> portal-agnostic specialty catalog — deliberately **not** an Ocean-specific registry) → the
+> `draft_referral` tool + keyword route + `ReferralCard` (typed card, tests in
+> `lib/__tests__/referral.test.ts` + the card test). It **looks up a specialist** (picks the
+> destination specialty from an explicit hint or by inferring it from the charted problems, and
+> surfaces candidate offices from a synthetic directory), **fills out the referral form** (a
+> deterministic chart→form pre-fill of the `ServiceRequest`-shaped field table + an editable
+> referral letter, every chart-derived field cited), proposes **supporting attachments**
+> (present-in-chart vs. required-but-missing), runs a **completeness check**
+> (`[clinician to complete]` blanks + missing attachments surfaced in a "To complete" list), and
+> proposes **appointment times** (deterministic weekday slots ~the specialty's typical wait out
+> from the last visit). Draft + **export-only** (shares the `ExportMenu` Print/Copy/Download):
+> **nothing is sent and nothing is booked** — proposed times map to Appointment *proposals*, and
+> the request models a `status=draft` / `intent=proposal` `ServiceRequest`. **Deferred to P2/3**
+> (everything below this note): the real per-destination (Ocean) template registry once
+> region+portal are confirmed, AllergyIntolerance/DiagnosticReport/DocumentReference fetchers,
+> the export **Bundle** envelope + transport, durable `Task` tracking (the F14 producer hand-off),
+> and ServiceRequest/DocumentReference write-back through the guarded broker.
+
 > **Origin notes (clinician):**
 > - *"Referrals"*
 > - *"Notes for specialists, in this specific form. Ocean portal. EMT"*

@@ -28,17 +28,20 @@ implemented yet.**
 | **F9** | Ambient scribe / voice dictation ★ *"Huge win"* | *"Medical scribes", "Voice dictations before"* | Deferred (P2) | [`f9-ambient-scribe.md`](./f9-ambient-scribe.md) |
 | **F10** | AI inbox manager | *"parse and flags them"* | Deferred (P2/3) | [`f10-ai-inbox-manager.md`](./f10-ai-inbox-manager.md) |
 | **F11** | Billing & coding assistant | *"900 page billing", "missing code", "batch file to ministry — back and forth"* | **Active · P1 slice built** | [`billing-referrals-forms-design.md`](./billing-referrals-forms-design.md) |
-| **F12** | Standardized e-referrals | *"Ocean portal", "e-referrals standardizing"* | **Active design** | [`billing-referrals-forms-design.md`](./billing-referrals-forms-design.md) |
+| **F12** | Standardized e-referrals | *"Ocean portal", "e-referrals standardizing"* | **Active · P1 slice built** | [`billing-referrals-forms-design.md`](./billing-referrals-forms-design.md) |
 | **F13** | Forms & letters | *"sick notes… disability health credits"* | **Active · P1 slice built** | [`billing-referrals-forms-design.md`](./billing-referrals-forms-design.md) |
 | **F14** | Follow-up / open-loop tracker | *"keep track of resources"* | Deferred (P2) | [`f14-followup-tracker.md`](./f14-followup-tracker.md) |
 
 - **Active design set:** F11 / F12 / F13 are specced together in
   [`billing-referrals-forms-design.md`](./billing-referrals-forms-design.md).
-- **Built (Phase-1 synthetic slice):** **F11** (`lib/billing.ts` → `suggest_billing_codes`) and
-  **F13** (`lib/forms.ts` → `generate_form`) ship deterministic, curated-synthetic card builders
-  wired into the assistant (router + AI SDK tool + typed card + tests). The batch submit broker,
-  fee-schedule RAG, real fee schedule, write-back, and the capability-registry refactor remain
-  Phase 2/3.
+- **Built (Phase-1 synthetic slice):** **F11** (`lib/billing.ts` → `suggest_billing_codes`),
+  **F13** (`lib/forms.ts` → `generate_form`), and **F12** (`lib/referral.ts` → `draft_referral`)
+  ship deterministic, curated-synthetic card builders wired into the assistant (router + AI SDK
+  tool + typed card + tests). F12 looks up a specialist, pre-fills + cites the referral form,
+  proposes attachments and appointment times, and exports — draft-only, never sent or booked,
+  against a synthetic portal-agnostic template. The batch submit broker, fee-schedule RAG, real
+  fee schedule, the real (Ocean) referral registry + transport + Bundle envelope + `Task`
+  tracking, write-back, and the capability-registry refactor remain Phase 2/3.
 - **Deferred (parked, do-not-implement-yet):** F9, F10, F14 each have a standalone design note.
 
 ---
