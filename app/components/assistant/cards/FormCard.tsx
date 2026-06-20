@@ -1,6 +1,26 @@
 import type { FormCardData, FormField } from "@/lib/assistant";
 import { CitationLink } from "../CitationLink";
 import { CardShell } from "./CardShell";
+import { ExportMenu } from "./ExportMenu";
+
+/** Plain-text rendering of the form/letter for print / copy / download. */
+function formToText(d: FormCardData): string {
+  const fields = d.fields.map(
+    (f) => `  ${f.label}: ${f.value ?? "[clinician to complete]"}`,
+  );
+  return [
+    d.title.toUpperCase(),
+    "AI draft — review and sign before issuing. Not issued.",
+    "",
+    ...fields,
+    "",
+    d.body,
+    d.toComplete.length ? `\nTo complete: ${d.toComplete.join(", ")}` : "",
+    `\n${d.disclosureNote}`,
+  ]
+    .filter((s) => s !== "")
+    .join("\n");
+}
 
 function Field({
   field,
@@ -50,6 +70,13 @@ export function FormCard({
       testId="form-card"
       title={data.title}
       tag="draft"
+      headerRight={
+        <ExportMenu
+          filename={`${data.template}.txt`}
+          title={data.title}
+          text={formToText(data)}
+        />
+      }
     >
       <div className="rounded-[4px] bg-[#fdf6e8] px-[9px] py-[5px] text-[10.5px] font-semibold text-[#9a6400]">
         AI draft — review and sign before issuing. Not issued.

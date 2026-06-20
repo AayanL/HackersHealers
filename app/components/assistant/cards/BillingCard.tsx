@@ -5,6 +5,33 @@ import type {
 } from "@/lib/assistant";
 import { CitationLink } from "../CitationLink";
 import { CardShell } from "./CardShell";
+import { ExportMenu } from "./ExportMenu";
+
+/** Plain-text rendering of the billing draft for print / copy / download. */
+function billingToText(d: BillingCardData): string {
+  const lines = d.lines.map(
+    (l) =>
+      `  ${l.kind === "service" ? "SVC" : "DX "}  ${l.code}  ${l.display}` +
+      `${l.fee ? `  ${l.fee}` : ""}  [${l.basis}]`,
+  );
+  const findings = d.findings.map(
+    (f) =>
+      `  - (${f.severity}) ${f.title}` +
+      (f.detail ? `\n      ${f.detail}` : ""),
+  );
+  return [
+    "BILLING DRAFT",
+    "AI draft — review before billing. VERA does not submit claims.",
+    "",
+    "Codes:",
+    ...lines,
+    d.total ? `\nTotal (service fees): ${d.total}` : "",
+    findings.length ? `\nMissing-code check:\n${findings.join("\n")}` : "",
+    `\n${d.coverageNote}`,
+  ]
+    .filter((s) => s !== "")
+    .join("\n");
+}
 
 const KIND_LABEL: Record<BillingLine["kind"], string> = {
   service: "SVC",
@@ -118,11 +145,18 @@ export function BillingCard({
       title="Billing draft"
       tag={`${data.lines.length} ${data.lines.length === 1 ? "line" : "lines"}`}
       headerRight={
-        data.total ? (
-          <span className="font-mono text-[11px] font-bold text-[#1f242b]">
-            {data.total}
-          </span>
-        ) : null
+        <div className="flex items-center gap-2">
+          {data.total ? (
+            <span className="font-mono text-[11px] font-bold text-[#1f242b]">
+              {data.total}
+            </span>
+          ) : null}
+          <ExportMenu
+            filename="billing-draft.txt"
+            title="Billing draft"
+            text={billingToText(data)}
+          />
+        </div>
       }
     >
       <div className="rounded-[4px] bg-[#fdf6e8] px-[9px] py-[5px] text-[10.5px] font-semibold text-[#9a6400]">

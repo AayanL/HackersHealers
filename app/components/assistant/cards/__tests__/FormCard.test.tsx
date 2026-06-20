@@ -40,6 +40,12 @@ describe("FormCard", () => {
     expect(screen.getByText(/review and sign before issuing/i)).toBeInTheDocument();
   });
 
+  it("offers an Export menu with a Print option", () => {
+    render(<FormCard data={data} />);
+    fireEvent.click(screen.getByRole("button", { name: "Export" }));
+    expect(screen.getByRole("menuitem", { name: "Print" })).toBeInTheDocument();
+  });
+
   it("cites the charted condition field", () => {
     const onClick = vi.fn();
     render(<FormCard data={data} onCitationClick={onClick} />);

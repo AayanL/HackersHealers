@@ -66,16 +66,60 @@ describe("buildBilling", () => {
     );
   });
 
-  it("flags a charted problem with no mapped billing code", () => {
-    const odd: PatientContext = {
+  it("maps common Synthea conditions instead of flooding 'no code' findings", () => {
+    const live: PatientContext = {
       patient: ctx.patient,
       medications: [],
-      problems: [{ name: "Rare orphan syndrome", ref: "Condition/orphan" }],
+      problems: [
+        { name: "Viral sinusitis (disorder)", ref: "Condition/sin" },
+        { name: "Acute bronchitis (disorder)", ref: "Condition/bro" },
+        { name: "Coronary Heart Disease", ref: "Condition/chd" },
+        { name: "Cardiac Arrest", ref: "Condition/ca" },
+      ],
       observations: [],
     };
-    const card = buildBilling(odd);
-    expect(card.findings.some((f) => f.id === "nodx-Condition/orphan")).toBe(
-      true,
+    const card = buildBilling(live);
+    const dx = card.lines.filter((l) => l.kind === "diagnostic");
+    expect(dx.map((l) => l.code)).toEqual(
+      expect.arrayContaining(["461", "466", "414", "427"]),
     );
+    expect(card.findings.some((f) => f.id === "unmapped-dx")).toBe(false);
+    expect(card.findings.some((f) => f.id === "no-diagnosis")).toBe(false);
+  });
+
+  it("consolidates unmapped problems into a single advisory", () => {
+    const mixed: PatientContext = {
+      patient: ctx.patient,
+      medications: [],
+      problems: [
+        { name: "Essential hypertension", ref: "Condition/I10" },
+        { name: "Rare orphan syndrome", ref: "Condition/orphan" },
+      ],
+      observations: [],
+    };
+    const card = buildBilling(mixed);
+    expect(card.lines.some((l) => l.code === "401")).toBe(true);
+    const finding = card.findings.find((f) => f.id === "unmapped-dx");
+    expect(finding?.severity).toBe("low");
+    expect(finding?.detail).toMatch(/Rare orphan syndrome/);
+    // A real diagnostic line exists, so the high "no diagnosis" gap must not fire.
+    expect(card.findings.some((f) => f.id === "no-diagnosis")).toBe(false);
+  });
+
+  it("excludes historical 'history of' problems from billing and flags", () => {
+    const hx: PatientContext = {
+      patient: ctx.patient,
+      medications: [],
+      problems: [
+        { name: "History of cardiac arrest (situation)", ref: "Condition/hx" },
+      ],
+      observations: [],
+    };
+    const card = buildBilling(hx);
+    expect(card.lines.some((l) => l.kind === "diagnostic")).toBe(false);
+    expect(card.findings.some((f) => f.id === "unmapped-dx")).toBe(false);
+    // The historical problem is not surfaced as something to hand-code.
+    const refs = card.findings.flatMap((f) => f.refs ?? []);
+    expect(refs).not.toContain("Condition/hx");
   });
 });

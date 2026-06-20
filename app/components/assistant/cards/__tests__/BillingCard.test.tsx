@@ -53,6 +53,12 @@ describe("BillingCard", () => {
     expect(screen.getByText(/review before billing/i)).toBeInTheDocument();
   });
 
+  it("offers an Export menu with a Print option", () => {
+    render(<BillingCard data={data} />);
+    fireEvent.click(screen.getByRole("button", { name: "Export" }));
+    expect(screen.getByRole("menuitem", { name: "Print" })).toBeInTheDocument();
+  });
+
   it("makes a diagnostic line's source Condition a clickable citation", () => {
     const onClick = vi.fn();
     render(<BillingCard data={data} onCitationClick={onClick} />);
