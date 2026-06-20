@@ -13,6 +13,7 @@ import {
   buildReconcile,
   buildSummary,
   buildTrend,
+  pickFormTemplate,
   routeToCard,
 } from "@/lib/tools";
 
@@ -98,6 +99,9 @@ describe("routeToCard", () => {
     ["Summarize her for handoff.", "summary"],
     ["Draft a progress note for today.", "note"],
     ["What should I monitor on metformin, and suggest a code?", "guideline"],
+    ["Suggest billing codes for today's visit.", "billing"],
+    ["Write a sick note for her.", "form"],
+    ["Draft a return-to-work letter.", "form"],
     ["Why is she on lisinopril?", null],
   ];
 
@@ -126,5 +130,29 @@ describe("routeToCard", () => {
       title: "Basic Metabolic Panel",
       fields: expect.arrayContaining([{ label: "Collect", value: "Next week" }]),
     });
+  });
+
+  it("routes a billing request to a curated-subset billing card", () => {
+    const result = routeToCard("Help me bill this visit.", ctx);
+    expect(result?.card?.kind).toBe("billing");
+    if (result?.card?.kind === "billing") {
+      expect(result.card.coverageNote).toMatch(/synthetic/i);
+    }
+  });
+
+  it("routes a form request and picks the template from intent", () => {
+    const result = routeToCard("Generate an attestation letter.", ctx);
+    expect(result?.card?.kind).toBe("form");
+    if (result?.card?.kind === "form") {
+      expect(result.card.template).toBe("attestation");
+    }
+  });
+});
+
+describe("pickFormTemplate", () => {
+  it("maps intent phrases to template ids", () => {
+    expect(pickFormTemplate("write a sick note")).toBe("sick-note");
+    expect(pickFormTemplate("return to work letter")).toBe("return-to-work");
+    expect(pickFormTemplate("disability attestation")).toBe("attestation");
   });
 });

@@ -27,6 +27,8 @@ Tools — anything actionable or numeric must be returned as a card, not prose:
 - Summarize / handoff / SBAR → call summarize_patient.
 - Draft a progress note / "what to document" → call draft_note.
 - Guideline/monitoring questions or code suggestions (ICD-10/SNOMED) → call suggest_codes_and_guidance.
+- Billing / fee codes / build a claim / "how do I bill this" → call suggest_billing_codes (curated SYNTHETIC fee subset, not a real fee schedule — say so; never submit).
+- Sick note / return-to-work / attestation / patient letter or form → call generate_form (draft only, review before issuing; minimum-necessary disclosure).
 When a tool returns a card, the card already shows the structured detail — so keep your narration to ONE short sentence and do NOT restate the card's contents (don't re-type the SBAR, the table, the order fields, etc.) in prose. Lead with the card; only add a brief caveat if something important isn't captured by it. For plain (non-card) questions, answer concisely; you may use light markdown — **bold** and simple "- " bullet lists — and cite resources inline.`;
 
 interface IncomingMessage {

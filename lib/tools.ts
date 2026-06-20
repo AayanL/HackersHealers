@@ -23,7 +23,9 @@ import type {
   SummaryCardData,
   TrendCardData,
 } from "./assistant";
+import { buildBilling } from "./billing";
 import { RANGES, activeMeds, flaggedLabs } from "./clinical";
+import { buildForm } from "./forms";
 import type {
   ContextMedication,
   ContextObservation,
@@ -366,6 +368,17 @@ export interface RouteResult {
   card?: CardData;
 }
 
+/** Pick an F13 form template from free-text intent. */
+export function pickFormTemplate(lower: string): string {
+  if (/return.?to.?work|fitness.?to.?work|\brtw\b/.test(lower)) {
+    return "return-to-work";
+  }
+  if (/attestation|disability|medical (certificate|letter)/.test(lower)) {
+    return "attestation";
+  }
+  return "sick-note";
+}
+
 export function routeToCard(
   text: string,
   ctx: PatientContext,
@@ -376,6 +389,20 @@ export function routeToCard(
     return {
       text: "Drug–drug interaction screen (curated subset):",
       card: buildInteractions(ctx),
+    };
+  }
+  // Billing before the guideline branch so "service/fee code" doesn't fall to it.
+  if (/\bbilling\b|\bbill\b|\bclaim\b|fee code|service code|fee schedule|how (do|to) (i )?bill/.test(lower)) {
+    return {
+      text: "Billing draft (curated synthetic codes — confirm before submitting):",
+      card: buildBilling(ctx),
+    };
+  }
+  // Forms before the note branch, because "sick note" contains "note".
+  if (/sick ?note|work ?note|return.?to.?work|fitness.?to.?work|attestation|disability|\bletter\b|\bform\b/.test(lower)) {
+    return {
+      text: "Draft form — review and sign before issuing. Not issued.",
+      card: buildForm(ctx, pickFormTemplate(lower)),
     };
   }
   if (/reconcile|double[- ]?check|duplicate|review (the )?med/.test(lower)) {
@@ -514,6 +541,28 @@ export function buildAssistantTools(
         "Draft a SOAP progress note and a 'what to document' checklist from the chart. Draft only; not signed and not entered in the chart.",
       inputSchema: NO_INPUT,
       execute: async () => emit(buildNote(ctx)),
+    }),
+    suggest_billing_codes: tool({
+      description:
+        "Suggest billing codes for the encounter: a service/fee code plus diagnostic codes from the charted problems, and catch likely missing/under-billed codes. Uses a CURATED SYNTHETIC fee subset (NOT a real fee schedule) — say so. Never submits a claim; the clinician confirms every code.",
+      inputSchema: NO_INPUT,
+      execute: async () => emit(buildBilling(ctx)),
+    }),
+    generate_form: tool({
+      description:
+        "Generate a draft form/letter (sick note, return-to-work, or medical attestation) prefilled and cited from the chart. Draft only; never auto-issued, and disclosure is minimum-necessary (a plain sick note never states the diagnosis).",
+      inputSchema: jsonSchema<{ template?: string }>({
+        type: "object",
+        properties: {
+          template: {
+            type: "string",
+            enum: ["sick-note", "return-to-work", "attestation"],
+            description: "Which form to draft. Defaults to sick-note.",
+          },
+        },
+        additionalProperties: false,
+      }),
+      execute: async ({ template }) => emit(buildForm(ctx, template ?? "sick-note")),
     }),
   };
 }

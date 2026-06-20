@@ -128,13 +128,77 @@ export interface NoteCardData {
   citations?: string[];
 }
 
+/** F11 — one proposed billing line: a diagnostic or a service/fee code. */
+export interface BillingLine {
+  id: string;
+  kind: "diagnostic" | "service";
+  code: string;
+  display: string;
+  /** Deterministic fee from the curated synthetic schedule (service lines). */
+  fee?: string;
+  /** The chart fact that justifies this line (human text). */
+  basis: string;
+  /** Source FHIR resource backing the line, for a citation chip. */
+  ref?: string;
+  /** Provenance / confirm note, e.g. "synthetic schedule — confirm". */
+  note?: string;
+}
+
+/** F11 — a missing-code / under-billing advisory (not persisted as FHIR). */
+export interface BillingFinding {
+  id: string;
+  severity: "high" | "moderate" | "low";
+  title: string;
+  detail?: string;
+  /** Triggering FHIR resources, as citation chips. */
+  refs?: string[];
+}
+
+export interface BillingCardData {
+  kind: "billing";
+  /** Proposed diagnostic + service/fee lines. */
+  lines: BillingLine[];
+  /** Missing-code / under-billing catches. */
+  findings: BillingFinding[];
+  /** Sum of service-line fees, deterministic. */
+  total?: string;
+  /** Synthetic-subset / confirm-before-billing disclaimer. */
+  coverageNote: string;
+}
+
+/** F13 — one prefilled (or to-complete) field on a generated form/letter. */
+export interface FormField {
+  key: string;
+  label: string;
+  /** Prefilled value, or null when the clinician must complete it. */
+  value: string | null;
+  /** Source FHIR resource for chart-derived fields, for a citation chip. */
+  ref?: string;
+}
+
+export interface FormCardData {
+  kind: "form";
+  /** Template id, e.g. "sick-note". */
+  template: string;
+  title: string;
+  fields: FormField[];
+  /** Deterministic letter body with [bracketed] blanks for unfilled fields. */
+  body: string;
+  /** Required fields the chart could not fill (completeness check). */
+  toComplete: string[];
+  /** Minimum-necessary disclosure note for this template. */
+  disclosureNote: string;
+}
+
 export type CardData =
   | ReconcileCardData
   | TrendCardData
   | DraftOrderCardData
   | GuidelineCardData
   | SummaryCardData
-  | NoteCardData;
+  | NoteCardData
+  | BillingCardData
+  | FormCardData;
 
 export interface ChatMessage {
   id: string;

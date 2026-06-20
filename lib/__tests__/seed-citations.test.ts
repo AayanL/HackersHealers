@@ -29,6 +29,13 @@ function cardRefs(card: CardData): string[] {
     case "summary":
     case "note":
       return card.citations ?? [];
+    case "billing":
+      return [
+        ...card.lines.flatMap((l) => (l.ref ? [l.ref] : [])),
+        ...card.findings.flatMap((f) => f.refs ?? []),
+      ];
+    case "form":
+      return card.fields.flatMap((f) => (f.ref ? [f.ref] : []));
     case "draftOrder":
       return [];
   }
