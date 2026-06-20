@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { CitationLink } from "../CitationLink";
 
 /**
  * Shared chrome for every rich tool-result card: a white panel with a labeled
@@ -46,18 +47,26 @@ export function CardShell({
   );
 }
 
-/** Per-card provenance footer — bracketed chips linking to source resources. */
-export function CardCitations({ citations }: { citations?: string[] }) {
+/** Per-card provenance footer — clickable chips linking to source resources. */
+export function CardCitations({
+  citations,
+  citationLabels,
+  onCitationClick,
+}: {
+  citations?: string[];
+  citationLabels?: Record<string, string>;
+  onCitationClick?: (ref: string) => void;
+}) {
   if (!citations || citations.length === 0) return null;
   return (
     <div className="flex flex-wrap gap-[5px] border-t border-[#eaedf1] pt-[8px]">
       {citations.map((c) => (
-        <span
+        <CitationLink
           key={c}
-          className="rounded-[4px] border border-[#c9d7fb] bg-[#e4eafd] px-[7px] py-[3px] font-mono text-[10px] text-[#2756e6]"
-        >
-          [{c}]
-        </span>
+          refId={c}
+          label={citationLabels?.[c]}
+          onClick={onCitationClick}
+        />
       ))}
     </div>
   );

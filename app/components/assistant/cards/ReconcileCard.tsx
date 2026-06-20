@@ -1,4 +1,5 @@
 import type { ReconcileCardData, ReconcileFinding } from "@/lib/assistant";
+import { CitationLink } from "../CitationLink";
 import { CardShell } from "./CardShell";
 
 const TYPE_LABEL: Record<ReconcileFinding["type"], string> = {
@@ -14,12 +15,15 @@ const SEVERITY_STYLE: Record<ReconcileFinding["severity"], string> = {
   low: "border-l-[#9aa6b5] bg-[#f4f6f9] text-[#5b6470]",
 };
 
-function shortRef(ref: string): string {
-  const i = ref.indexOf("/");
-  return i >= 0 ? ref.slice(i + 1) : ref;
-}
-
-function Finding({ finding }: { finding: ReconcileFinding }) {
+function Finding({
+  finding,
+  citationLabels,
+  onCitationClick,
+}: {
+  finding: ReconcileFinding;
+  citationLabels?: Record<string, string>;
+  onCitationClick?: (ref: string) => void;
+}) {
   return (
     <div
       data-testid="reconcile-finding"
@@ -40,12 +44,12 @@ function Finding({ finding }: { finding: ReconcileFinding }) {
       ) : null}
       <div className="mt-[7px] flex flex-wrap items-center gap-[5px]">
         {finding.meds.map((m) => (
-          <span
+          <CitationLink
             key={m}
-            className="rounded-[4px] border border-[#c9d7fb] bg-[#e4eafd] px-[7px] py-[3px] font-mono text-[10px] text-[#2756e6]"
-          >
-            {shortRef(m)}
-          </span>
+            refId={m}
+            label={citationLabels?.[m]}
+            onClick={onCitationClick}
+          />
         ))}
         {finding.source ? (
           <span className="ml-auto font-mono text-[9.5px] text-[#8a93a2]">
@@ -57,7 +61,15 @@ function Finding({ finding }: { finding: ReconcileFinding }) {
   );
 }
 
-export function ReconcileCard({ data }: { data: ReconcileCardData }) {
+export function ReconcileCard({
+  data,
+  citationLabels,
+  onCitationClick,
+}: {
+  data: ReconcileCardData;
+  citationLabels?: Record<string, string>;
+  onCitationClick?: (ref: string) => void;
+}) {
   const dup = data.findings.filter((f) => f.type === "duplicate").length;
   const gap = data.findings.filter((f) => f.type === "gap").length;
   const parts = [
@@ -78,7 +90,12 @@ export function ReconcileCard({ data }: { data: ReconcileCardData }) {
       ) : null}
       <div className="flex flex-col gap-[7px]">
         {data.findings.map((f) => (
-          <Finding key={f.id} finding={f} />
+          <Finding
+            key={f.id}
+            finding={f}
+            citationLabels={citationLabels}
+            onCitationClick={onCitationClick}
+          />
         ))}
       </div>
       {data.coverageGaps && data.coverageGaps.length > 0 ? (

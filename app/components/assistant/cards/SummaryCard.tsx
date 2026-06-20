@@ -12,7 +12,15 @@ const SBAR_BLOCKS: { key: keyof SummaryCardData["sbar"]; label: string }[] = [
   { key: "recommendation", label: "Recommendation" },
 ];
 
-export function SummaryCard({ data }: { data: SummaryCardData }) {
+export function SummaryCard({
+  data,
+  citationLabels,
+  onCitationClick,
+}: {
+  data: SummaryCardData;
+  citationLabels?: Record<string, string>;
+  onCitationClick?: (ref: string) => void;
+}) {
   const [mode, setMode] = useState<"sbar" | "patient">("sbar");
 
   return (
@@ -63,7 +71,11 @@ export function SummaryCard({ data }: { data: SummaryCardData }) {
         </p>
       )}
 
-      <CardCitations citations={data.citations} />
+      <CardCitations
+        citations={data.citations}
+        citationLabels={citationLabels}
+        onCitationClick={onCitationClick}
+      />
     </CardShell>
   );
 }

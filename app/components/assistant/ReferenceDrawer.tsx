@@ -1,10 +1,21 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useId, useRef } from "react";
 import type { ResourceDetail } from "@/lib/resources";
 
-// The "reference item" a citation chip opens: a slide-over showing the parsed
-// fields we hold for the cited FHIR resource, plus its raw reference id.
+// The "reference item" a citation chip opens: a modal slide-over showing the
+// parsed fields we hold for the cited FHIR resource, plus its raw reference id.
+// Implements the modal contract — initial focus, focus trap, Esc, and focus
+// restore to the trigger on close.
+
+function focusable(root: HTMLElement | null): HTMLElement[] {
+  if (!root) return [];
+  return Array.from(
+    root.querySelectorAll<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+    ),
+  ).filter((el) => !el.hasAttribute("disabled"));
+}
 
 export function ReferenceDrawer({
   resource,
@@ -13,13 +24,41 @@ export function ReferenceDrawer({
   resource: ResourceDetail | null;
   onClose: () => void;
 }) {
+  const asideRef = useRef<HTMLElement>(null);
+  const titleId = useId();
+
   useEffect(() => {
     if (!resource) return;
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    const aside = asideRef.current;
+    (focusable(aside)[0] ?? aside)?.focus();
+
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") {
+        onClose();
+        return;
+      }
+      if (e.key !== "Tab") return;
+      const items = focusable(aside);
+      if (items.length === 0) {
+        e.preventDefault();
+        return;
+      }
+      const idx = items.indexOf(document.activeElement as HTMLElement);
+      if (e.shiftKey && idx <= 0) {
+        e.preventDefault();
+        items[items.length - 1].focus();
+      } else if (!e.shiftKey && idx === items.length - 1) {
+        e.preventDefault();
+        items[0].focus();
+      }
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      // Restore focus to whatever triggered the drawer (the citation chip).
+      previouslyFocused?.focus?.();
+    };
   }, [resource, onClose]);
 
   if (!resource) return null;
@@ -28,17 +67,21 @@ export function ReferenceDrawer({
     <div
       role="dialog"
       aria-modal="true"
-      aria-label={`${resource.type} reference`}
+      aria-labelledby={titleId}
       className="fixed inset-0 z-40 flex justify-end"
     >
-      <button
-        type="button"
-        aria-label="Dismiss reference"
+      <div
+        aria-hidden="true"
+        data-testid="drawer-backdrop"
         onClick={onClose}
-        className="absolute inset-0 cursor-default bg-black/20"
+        className="absolute inset-0 bg-black/20"
       />
-      <aside className="relative z-10 flex h-full w-[360px] max-w-[88vw] flex-col border-l border-[#d2d8e0] bg-white shadow-2xl">
-        <header className="flex items-center gap-2 border-b border-[#d2d8e0] bg-[#16202e] px-4 py-[11px] text-white">
+      <aside
+        ref={asideRef}
+        tabIndex={-1}
+        className="relative z-10 flex h-full w-[360px] max-w-[88vw] flex-col border-l border-[#d2d8e0] bg-white shadow-2xl outline-none"
+      >
+        <header className="flex shrink-0 items-center gap-2 border-b border-[#d2d8e0] bg-[#16202e] px-4 py-[11px] text-white">
           <span className="font-mono text-[10.5px] uppercase tracking-[0.06em] text-[#9fb0c7]">
             {resource.type}
           </span>
@@ -53,8 +96,11 @@ export function ReferenceDrawer({
           </button>
         </header>
 
-        <div className="flex flex-col gap-3 overflow-y-auto p-4">
-          <h2 className="m-0 text-[15px] font-extrabold leading-[1.3] text-[#15181d]">
+        <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4">
+          <h2
+            id={titleId}
+            className="m-0 text-[15px] font-extrabold leading-[1.3] text-[#15181d]"
+          >
             {resource.title}
           </h2>
 

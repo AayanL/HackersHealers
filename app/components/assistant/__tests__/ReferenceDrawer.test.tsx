@@ -39,7 +39,20 @@ describe("ReferenceDrawer", () => {
   it("calls onClose from the backdrop", () => {
     const onClose = vi.fn();
     render(<ReferenceDrawer resource={resource} onClose={onClose} />);
-    fireEvent.click(screen.getByRole("button", { name: "Dismiss reference" }));
+    fireEvent.click(screen.getByTestId("drawer-backdrop"));
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("closes on Escape", () => {
+    const onClose = vi.fn();
+    render(<ReferenceDrawer resource={resource} onClose={onClose} />);
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("moves focus into the dialog on open", () => {
+    render(<ReferenceDrawer resource={resource} onClose={() => {}} />);
+    // The close button is the first focusable inside the dialog.
+    expect(screen.getByRole("button", { name: "Close reference" })).toHaveFocus();
   });
 });

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { CodeOption, GuidelineCardData } from "@/lib/assistant";
+import { CitationLink } from "../CitationLink";
 import { CardShell } from "./CardShell";
 
 function CodeRow({
@@ -43,7 +44,15 @@ function CodeRow({
   );
 }
 
-export function GuidelineCard({ data }: { data: GuidelineCardData }) {
+export function GuidelineCard({
+  data,
+  citationLabels,
+  onCitationClick,
+}: {
+  data: GuidelineCardData;
+  citationLabels?: Record<string, string>;
+  onCitationClick?: (ref: string) => void;
+}) {
   const [selected, setSelected] = useState<string | null>(null);
 
   return (
@@ -97,9 +106,14 @@ export function GuidelineCard({ data }: { data: GuidelineCardData }) {
       ) : null}
 
       {data.sourceCondition ? (
-        <span className="self-start rounded-[4px] border border-[#c9d7fb] bg-[#e4eafd] px-[7px] py-[2px] font-mono text-[10px] text-[#2756e6]">
-          source: {data.sourceCondition}
-        </span>
+        <div className="flex items-center gap-[5px] self-start text-[10px] text-[#8a93a2]">
+          <span className="font-mono">source:</span>
+          <CitationLink
+            refId={data.sourceCondition}
+            label={citationLabels?.[data.sourceCondition]}
+            onClick={onCitationClick}
+          />
+        </div>
       ) : null}
 
       {data.unverifiedNote ? (

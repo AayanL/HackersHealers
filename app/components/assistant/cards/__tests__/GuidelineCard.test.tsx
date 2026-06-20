@@ -61,6 +61,7 @@ describe("GuidelineCard", () => {
     expect(
       screen.getByText(/Model summary, unverified/),
     ).toBeInTheDocument();
-    expect(screen.getByText("source: Condition/I10")).toBeInTheDocument();
+    expect(screen.getByText("source:")).toBeInTheDocument();
+    expect(screen.getByText("[Condition/I10]")).toBeInTheDocument();
   });
 });

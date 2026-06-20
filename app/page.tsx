@@ -130,7 +130,7 @@ export default function Home() {
       meds={view.meds}
       allergies={view.allergies}
       codeStatus={view.codeStatus}
-      dataMode="synthetic"
+      dataMode={live ? "live" : "synthetic"}
       glance={live ? undefined : SEED_GLANCE}
       alerts={live ? [] : SEED_ALERTS}
       initialMessages={live ? [] : SEED_CONVERSATION}

@@ -12,7 +12,15 @@ const SOAP_BLOCKS: { key: keyof NoteCardData["soap"]; label: string }[] = [
   { key: "plan", label: "Plan" },
 ];
 
-export function NoteCard({ data }: { data: NoteCardData }) {
+export function NoteCard({
+  data,
+  citationLabels,
+  onCitationClick,
+}: {
+  data: NoteCardData;
+  citationLabels?: Record<string, string>;
+  onCitationClick?: (ref: string) => void;
+}) {
   const [mode, setMode] = useState<"note" | "todo">("note");
 
   return (
@@ -66,7 +74,11 @@ export function NoteCard({ data }: { data: NoteCardData }) {
         </ul>
       )}
 
-      <CardCitations citations={data.citations} />
+      <CardCitations
+        citations={data.citations}
+        citationLabels={citationLabels}
+        onCitationClick={onCitationClick}
+      />
     </CardShell>
   );
 }

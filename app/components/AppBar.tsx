@@ -9,7 +9,7 @@ export function AppBar({
   clinicianInitials = "AR",
 }: AppBarProps) {
   return (
-    <header className="flex items-center gap-4 border-b border-[#d2d8e0] bg-white px-[18px] py-[9px]">
+    <header className="flex shrink-0 items-center gap-4 border-b border-[#d2d8e0] bg-white px-[18px] py-[9px]">
       <div className="flex items-center gap-2 text-[13.5px] font-extrabold tracking-[-0.01em] text-[#15181d]">
         <span aria-hidden className="h-4 w-4 rounded-[3px] bg-[#2756e6]" />
         VERA<span className="font-semibold text-[#8a93a2]">/ehr</span>

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import type { ChatMessage } from "@/lib/assistant";
-import { shortRef } from "@/lib/citations";
+import { CitationLink } from "./CitationLink";
 import { Markdown } from "./Markdown";
 import { CardRenderer } from "./cards/CardRenderer";
 
@@ -15,29 +15,16 @@ function CitationChips({
   labels?: Record<string, string>;
   onCitationClick?: (ref: string) => void;
 }) {
-  const className =
-    "rounded-[4px] border border-[#c9d7fb] bg-[#e4eafd] px-[7px] py-[3px] font-mono text-[10px] text-[#2756e6]";
   return (
     <div className="flex flex-wrap gap-[5px]">
-      {citations.map((c) => {
-        const text = `[${labels?.[c] ?? shortRef(c)}]`;
-        return onCitationClick ? (
-          <button
-            key={c}
-            type="button"
-            title={c}
-            aria-label={`Open reference ${c}`}
-            onClick={() => onCitationClick(c)}
-            className={`${className} cursor-pointer hover:bg-[#d7e1fb] hover:underline`}
-          >
-            {text}
-          </button>
-        ) : (
-          <span key={c} title={c} className={className}>
-            {text}
-          </span>
-        );
-      })}
+      {citations.map((c) => (
+        <CitationLink
+          key={c}
+          refId={c}
+          label={labels?.[c]}
+          onClick={onCitationClick}
+        />
+      ))}
     </div>
   );
 }
@@ -54,16 +41,24 @@ export function Conversation({
   onCitationClick?: (ref: string) => void;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  // Stay pinned to the bottom only while the reader is already there — don't
+  // yank them away if they've scrolled up to read an earlier card/citation.
+  const stick = useRef(true);
 
-  // Keep the latest turn in view as messages stream in.
+  const onScroll = () => {
+    const el = scrollRef.current;
+    if (el) stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+  };
+
   useEffect(() => {
     const el = scrollRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
+    if (el && stick.current) el.scrollTop = el.scrollHeight;
   }, [messages.length, pending]);
 
   return (
     <div
       ref={scrollRef}
+      onScroll={onScroll}
       className="flex min-h-0 flex-1 flex-col gap-[14px] overflow-y-auto p-[14px]"
     >
       {messages.map((m) =>
@@ -83,7 +78,13 @@ export function Conversation({
                 onCitationClick={onCitationClick}
               />
             </div>
-            {m.card ? <CardRenderer card={m.card} /> : null}
+            {m.card ? (
+              <CardRenderer
+                card={m.card}
+                citationLabels={citationLabels}
+                onCitationClick={onCitationClick}
+              />
+            ) : null}
             {m.citations && m.citations.length > 0 ? (
               <CitationChips
                 citations={m.citations}

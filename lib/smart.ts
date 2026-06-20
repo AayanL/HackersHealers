@@ -38,11 +38,13 @@ function conceptText(c: Condition["code"]): string {
   return c?.text ?? c?.coding?.[0]?.display ?? c?.coding?.[0]?.code ?? "Problem";
 }
 
-function toContextProblem(c: Condition): ContextProblem {
-  return { name: conceptText(c.code), ref: `Condition/${c.id ?? ""}` };
+function toContextProblem(c: Condition): ContextProblem | null {
+  if (!c.id) return null; // no id → can't be a stable citation target
+  return { name: conceptText(c.code), ref: `Condition/${c.id}` };
 }
 
 function toContextObservation(o: Observation): ContextObservation | null {
+  if (!o.id) return null;
   const value = o.valueQuantity?.value;
   if (typeof value !== "number") return null; // skip non-numeric (e.g. panels)
   return {
@@ -76,7 +78,9 @@ export async function loadChart(): Promise<ChartData> {
     const cb = (await client.request(
       `Condition?patient=${id}`,
     )) as Bundle<Condition>;
-    problems = (cb.entry ?? []).map((e) => toContextProblem(e.resource));
+    problems = (cb.entry ?? [])
+      .map((e) => toContextProblem(e.resource))
+      .filter((p): p is ContextProblem => p !== null);
   } catch {
     problems = [];
   }

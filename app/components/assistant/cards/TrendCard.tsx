@@ -1,4 +1,5 @@
 import type { TrendCardData, TrendPoint } from "@/lib/assistant";
+import { CitationLink } from "../CitationLink";
 import { CardShell } from "./CardShell";
 
 const W = 320;
@@ -20,12 +21,15 @@ function buildGeometry(points: TrendPoint[]) {
   });
 }
 
-function shortRef(ref: string): string {
-  const i = ref.indexOf("/");
-  return i >= 0 ? ref.slice(i + 1) : ref;
-}
-
-export function TrendCard({ data }: { data: TrendCardData }) {
+export function TrendCard({
+  data,
+  citationLabels,
+  onCitationClick,
+}: {
+  data: TrendCardData;
+  citationLabels?: Record<string, string>;
+  onCitationClick?: (ref: string) => void;
+}) {
   const geo = buildGeometry(data.points);
   const polyline = geo.map((g) => `${g.x},${g.y}`).join(" ");
   const latest = data.points[data.points.length - 1];
@@ -86,7 +90,12 @@ export function TrendCard({ data }: { data: TrendCardData }) {
               {p.value} {data.unit}
               {p.flagged ? " ▲" : ""}
             </span>
-            <span className="ml-auto text-[#aeb6c1]">{shortRef(p.ref)}</span>
+            <CitationLink
+              className="ml-auto"
+              refId={p.ref}
+              label={citationLabels?.[p.ref]}
+              onClick={onCitationClick}
+            />
           </div>
         ))}
       </div>

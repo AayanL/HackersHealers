@@ -199,7 +199,7 @@ export const SEED_CONVERSATION: ChatMessage[] = [
           severity: "moderate",
           title: "Metformin active · no diabetes problem charted",
           detail: "Active but no matching Condition — worth confirming.",
-          meds: ["MedicationRequest/metformin"],
+          meds: ["MedicationRequest/metformin-500"],
           source: "med-without-indication",
         },
         {
@@ -209,8 +209,8 @@ export const SEED_CONVERSATION: ChatMessage[] = [
           title: "Possible duplicate antihypertensive",
           detail: "Lisinopril and amlodipine both lower blood pressure.",
           meds: [
-            "MedicationRequest/lisinopril",
-            "MedicationRequest/amlodipine",
+            "MedicationRequest/lisinopril-10",
+            "MedicationRequest/amlodipine-5",
           ],
           source: "duplicate-class@2025.4",
         },
@@ -304,7 +304,11 @@ export const SEED_CONVERSATION: ChatMessage[] = [
     text: "Draft summary — review before use:",
     card: {
       kind: "summary",
-      citations: ["Condition/I10", "Observation/k", "MedicationRequest/metformin"],
+      citations: [
+        "Condition/I10",
+        "Observation/k",
+        "MedicationRequest/metformin-500",
+      ],
       sbar: {
         situation:
           "68F with hypertension and hyperlipidemia, in for routine follow-up.",
@@ -325,7 +329,11 @@ export const SEED_CONVERSATION: ChatMessage[] = [
     text: "AI draft — review and edit before signing. Not entered in the chart.",
     card: {
       kind: "note",
-      citations: ["Encounter/2026-06-10", "Observation/k", "Condition/I10"],
+      citations: [
+        "Observation/k",
+        "Condition/I10",
+        "MedicationRequest/metformin-500",
+      ],
       soap: {
         subjective:
           "68F here for routine follow-up. No new complaints reported.",

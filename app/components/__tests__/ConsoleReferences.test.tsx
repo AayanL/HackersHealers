@@ -44,7 +44,7 @@ describe("Console reference drawer", () => {
 
     fireEvent.click(
       screen.getByRole("button", {
-        name: "Open reference MedicationRequest/55b5db91",
+        name: "Open reference: Nitroglycerin 0.4 mg",
       }),
     );
     expect(screen.getByRole("dialog")).toBeInTheDocument();
@@ -53,5 +53,24 @@ describe("Console reference drawer", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Close reference" }));
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("opens an explicit 'not in context' drawer for an unresolved ref", () => {
+    render(
+      <Console
+        patient={patient}
+        meds={[]}
+        initialMessages={[
+          { id: "a1", role: "assistant", text: "See [Encounter/zzz]." },
+        ]}
+        resources={{}}
+      />,
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Open reference: Encounter/zzz" }),
+    );
+    expect(
+      screen.getByText(/Not in the loaded chart context/),
+    ).toBeInTheDocument();
   });
 });

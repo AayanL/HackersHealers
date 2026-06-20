@@ -1,7 +1,13 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 import type { ReconcileCardData } from "@/lib/assistant";
 import ReconcileCard from "@/app/components/assistant/cards/ReconcileCard";
+
+const labels = {
+  "MedicationRequest/metformin": "Metformin 500 mg",
+  "MedicationRequest/lisinopril": "Lisinopril 10 mg",
+  "MedicationRequest/amlodipine": "Amlodipine 5 mg",
+};
 
 const data: ReconcileCardData = {
   kind: "reconcile",
@@ -42,10 +48,20 @@ describe("ReconcileCard", () => {
     expect(screen.getByText("1 duplicate · 1 gap")).toBeInTheDocument();
   });
 
-  it("shows offending-drug chips by short reference", () => {
-    render(<ReconcileCard data={data} />);
-    expect(screen.getByText("metformin")).toBeInTheDocument();
-    expect(screen.getByText("lisinopril")).toBeInTheDocument();
+  it("renders offending-drug chips that are clickable citations", () => {
+    const onCitationClick = vi.fn();
+    render(
+      <ReconcileCard
+        data={data}
+        citationLabels={labels}
+        onCitationClick={onCitationClick}
+      />,
+    );
+    expect(screen.getByText("[Lisinopril 10 mg]")).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Open reference: Metformin 500 mg" }),
+    );
+    expect(onCitationClick).toHaveBeenCalledWith("MedicationRequest/metformin");
   });
 
   it("surfaces coverage gaps and the advisory banner", () => {

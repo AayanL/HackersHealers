@@ -19,7 +19,7 @@ export function PatientBanner({
   codeStatus = "Full code",
 }: PatientBannerProps) {
   return (
-    <div className="flex items-center gap-[14px] border-b-2 border-[#d2d8e0] bg-white px-[18px] py-[11px]">
+    <div className="flex shrink-0 items-center gap-[14px] border-b-2 border-[#d2d8e0] bg-white px-[18px] py-[11px]">
       <div className="flex h-[42px] w-[42px] flex-none items-center justify-center rounded-[5px] bg-[#2756e6] text-[14px] font-bold text-white">
         {patient.initials}
       </div>

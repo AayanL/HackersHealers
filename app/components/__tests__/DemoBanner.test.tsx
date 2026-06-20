@@ -14,4 +14,12 @@ describe("DemoBanner", () => {
     render(<DemoBanner dataMode="synthetic" />);
     expect(screen.getByText("DataMode=synthetic")).toBeInTheDocument();
   });
+
+  it("does NOT claim NO PHI on a live SMART session", () => {
+    render(<DemoBanner dataMode="live" />);
+    expect(
+      screen.queryByText("DEMO · SYNTHETIC DATA · NO PHI"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText(/LIVE SMART SESSION/)).toBeInTheDocument();
+  });
 });

@@ -47,7 +47,7 @@ describe("Markdown", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("makes a citation clickable when a handler is provided", () => {
+  it("makes a citation clickable, named by its human label, when wired", () => {
     const onCitationClick = vi.fn();
     render(
       <Markdown
@@ -58,10 +58,24 @@ describe("Markdown", () => {
     );
     fireEvent.click(
       screen.getByRole("button", {
-        name: "Open reference MedicationRequest/55b5db91",
+        name: "Open reference: Nitroglycerin 0.4 mg",
       }),
     );
     expect(onCitationClick).toHaveBeenCalledWith("MedicationRequest/55b5db91");
+  });
+
+  it("still resolves a citation wrapped in **bold**", () => {
+    render(
+      <Markdown
+        text="**Active: [MedicationRequest/55b5db91]**"
+        citationLabels={{ "MedicationRequest/55b5db91": "Nitroglycerin 0.4 mg" }}
+      />,
+    );
+    // The ref became a chip, not literal bracketed text inside the bold span.
+    expect(screen.getByText("[Nitroglycerin 0.4 mg]")).toBeInTheDocument();
+    expect(
+      screen.queryByText(/\[MedicationRequest\/55b5db91\]/),
+    ).not.toBeInTheDocument();
   });
 
   it("falls back to a shortened ref when the citation is unknown", () => {

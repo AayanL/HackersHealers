@@ -1,45 +1,11 @@
 import type { ReactNode } from "react";
-import { shortRef } from "@/lib/citations";
+import { CitationLink } from "./CitationLink";
 
 // A deliberately tiny markdown renderer for assistant prose: paragraphs,
 // `- `/`* ` bullet lists, line breaks, **bold**, `code`, and inline FHIR
-// citation tokens like [MedicationRequest/55b5db91] → a labeled chip. Not a
+// citation tokens like [MedicationRequest/55b5db91] → a clickable chip. Not a
 // full CommonMark parser — just enough so the model's formatting reads
 // correctly in the dock without pulling in a markdown dependency.
-
-const TOKEN =
-  /\*\*([^*]+)\*\*|`([^`]+)`|\[([A-Za-z][A-Za-z]+\/[A-Za-z0-9._-]+)\]/g;
-
-function CitationChip({
-  refId,
-  label,
-  onClick,
-}: {
-  refId: string;
-  label: string;
-  onClick?: (ref: string) => void;
-}) {
-  const className =
-    "mx-[1px] inline rounded-[4px] border border-[#c9d7fb] bg-[#e4eafd] px-[5px] py-[1px] align-baseline font-mono text-[10px] text-[#2756e6]";
-  if (!onClick) {
-    return (
-      <span title={refId} className={className}>
-        [{label}]
-      </span>
-    );
-  }
-  return (
-    <button
-      type="button"
-      title={refId}
-      aria-label={`Open reference ${refId}`}
-      onClick={() => onClick(refId)}
-      className={`${className} cursor-pointer hover:bg-[#d7e1fb] hover:underline`}
-    >
-      [{label}]
-    </button>
-  );
-}
 
 function renderInline(
   text: string,
@@ -47,15 +13,22 @@ function renderInline(
   labels: Record<string, string>,
   onCitationClick?: (ref: string) => void,
 ): ReactNode[] {
+  // A fresh regex per call: renderInline recurses into bold spans, and a shared
+  // /g regex would have its lastIndex clobbered by the nested call.
+  const re = /\*\*([^*]+)\*\*|`([^`]+)`|\[([A-Za-z][A-Za-z]+\/[A-Za-z0-9._-]+)\]/g;
   const nodes: ReactNode[] = [];
   let last = 0;
   let i = 0;
   let m: RegExpExecArray | null;
-  TOKEN.lastIndex = 0;
-  while ((m = TOKEN.exec(text)) !== null) {
+  while ((m = re.exec(text)) !== null) {
     if (m.index > last) nodes.push(text.slice(last, m.index));
     if (m[1] !== undefined) {
-      nodes.push(<strong key={`${keyBase}-b${i}`}>{m[1]}</strong>);
+      // Recurse so a citation wrapped in **bold** still tokenizes into a chip.
+      nodes.push(
+        <strong key={`${keyBase}-b${i}`}>
+          {renderInline(m[1], `${keyBase}-b${i}`, labels, onCitationClick)}
+        </strong>,
+      );
     } else if (m[2] !== undefined) {
       nodes.push(
         <code
@@ -68,10 +41,10 @@ function renderInline(
     } else if (m[3] !== undefined) {
       const refId = m[3];
       nodes.push(
-        <CitationChip
+        <CitationLink
           key={`${keyBase}-cite${i}`}
           refId={refId}
-          label={labels[refId] ?? shortRef(refId)}
+          label={labels[refId]}
           onClick={onCitationClick}
         />,
       );
