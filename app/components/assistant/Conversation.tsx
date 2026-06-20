@@ -1,4 +1,5 @@
 import type { ChatMessage } from "@/lib/assistant";
+import { CardRenderer } from "./cards/CardRenderer";
 
 function CitationChips({ citations }: { citations: string[] }) {
   return (
@@ -37,6 +38,7 @@ export function Conversation({
             <div className="text-[13px] leading-[1.5] text-[#1f242b]">
               {m.text}
             </div>
+            {m.card ? <CardRenderer card={m.card} /> : null}
             {m.citations && m.citations.length > 0 ? (
               <CitationChips citations={m.citations} />
             ) : null}

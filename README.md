@@ -44,6 +44,12 @@ works standalone (and on Vercel) out of the box.
   `ChartSidebar`, `MedicationList`) composed by `Console.tsx`.
 - **Assistant dock** — `app/components/assistant/` (`AssistantDock`, `AtAGlance`,
   `SafetyScan` (F8), `Conversation`, `Composer`).
+- **Tool-result cards** — `app/components/assistant/cards/` render typed payloads
+  (not model prose) so doses/orders can't be typo'd into free text: `ReconcileCard`
+  (F2), `TrendCard` (F4), `DraftOrderCard` (F5, draft→confirm→reject), `GuidelineCard`
+  (F7, ICD-10/SNOMED picker + external-knowledge chips), `SummaryCard` (F3, SBAR/patient
+  tabs), `NoteCard` (F6, SOAP/to-document tabs). Dispatched by `CardRenderer` from each
+  assistant message's `card` payload.
 - **FHIR layer** — `lib/fhir.ts` (pure view-model helpers, unit-tested), `lib/smart.ts`
   (client-only `fhirclient` calls), `lib/seed.ts` (synthetic demo chart).
 - **AI gateway** — `app/api/chat/route.ts` runs the AI SDK `streamText` server-side
@@ -51,10 +57,12 @@ works standalone (and on Vercel) out of the box.
   switch providers (OpenAI / Google) in one line. `lib/grounding.ts` builds the
   single-patient context; `lib/chat-client.ts` streams the reply into the dock.
 
-**Status:** the EHR shell, SMART launch, safety scan, and **F1 (grounded "ask about this
-patient")** are wired end-to-end. The richer feature cards (F2 reconcile table, F4 trend
-chart, F5 draft-order card, F7 guideline+coding, F3 SBAR/patient summary, F6 SOAP note)
-are scaffolded in the design and land next.
+**Status:** the EHR shell, SMART launch, safety scan (F8), and **F1 (grounded "ask about
+this patient")** are wired end-to-end through the live gateway. The richer tool-result
+cards (F2 reconcile table, F4 trend chart, F5 draft-order, F7 guideline+coding, F3
+SBAR/patient summary, F6 SOAP note) are built as typed components and shown in the seeded
+demo transcript; live model-driven population of each card is the next step (the model
+returns a `card` payload per the registry's tool schema).
 
 ## Deploy to Vercel
 
