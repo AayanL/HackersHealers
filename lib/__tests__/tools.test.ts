@@ -92,6 +92,7 @@ describe("buildSummary / buildNote", () => {
 describe("routeToCard", () => {
   const cases: [string, string | null][] = [
     ["Reconcile her meds.", "reconcile"],
+    ["Check interactions on her active meds.", "reconcile"],
     ["Show her potassium over the last year.", "trend"],
     ["Draft a repeat BMP for next week.", "draftOrder"],
     ["Summarize her for handoff.", "summary"],
@@ -106,6 +107,15 @@ describe("routeToCard", () => {
       expect(result).toBeNull();
     } else {
       expect(result?.card?.kind).toBe(kind);
+    }
+  });
+
+  it("routes an interaction request to the curated interaction screen", () => {
+    const result = routeToCard("Check her drug interactions.", ctx);
+    expect(result?.card?.kind).toBe("reconcile");
+    if (result?.card?.kind === "reconcile") {
+      // The curated-subset coverage note distinguishes it from full reconcile.
+      expect(result.card.coverageGaps?.[0]).toMatch(/curated/i);
     }
   });
 

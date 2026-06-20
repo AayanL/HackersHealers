@@ -48,13 +48,17 @@ export function AssistantDock({
         </span>
       </header>
 
-      {glance ? <AtAGlance glance={glance} /> : null}
-      <SafetyScan alerts={alerts} />
       <Conversation
         messages={messages}
         pending={pending}
         citationLabels={citationLabels}
         onCitationClick={onCitationClick}
+        topSlot={
+          <>
+            {glance ? <AtAGlance glance={glance} /> : null}
+            <SafetyScan alerts={alerts} />
+          </>
+        }
       />
       <Composer placeholder={composerPlaceholder} onSend={onSend} />
     </aside>

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Console from "@/app/components/Console";
 import { citationLabels } from "@/lib/citations";
+import { buildGlance, safetyScan } from "@/lib/glance";
 import { resourceIndex } from "@/lib/resources";
 import {
   SEED_ALERTS,
@@ -69,32 +70,36 @@ const DEMO_VIEW = toView(
   SEED_OBSERVATIONS,
 );
 
+type Phase = "loading" | "live" | "demo";
+
 export default function Home() {
-  // Render the synthetic demo chart immediately so the console works on Vercel
-  // without a SMART session; swap to live data once oauth2.ready() resolves.
+  // Start in `loading`: we don't yet know if a SMART session is in context. The
+  // synthetic Jane-Doe seed (glance / safety scan / conversation) is shown ONLY
+  // once we confirm `demo`, and real data once we confirm `live` — so the seed
+  // never flashes-then-disappears on a live launch.
   const [view, setView] = useState<ChartView>(DEMO_VIEW);
-  const [live, setLive] = useState(false);
+  const [phase, setPhase] = useState<Phase>("loading");
 
   useEffect(() => {
     let cancelled = false;
     loadChart()
       .then(({ patient, medications, problems, observations }) => {
-        if (!cancelled) {
-          setLive(true);
-          setView(
-            toView(
-              patient,
-              medications,
-              [],
-              "Code status unknown",
-              problems,
-              observations,
-            ),
-          );
-        }
+        if (cancelled) return;
+        setView(
+          toView(
+            patient,
+            medications,
+            [],
+            "Code status unknown",
+            problems,
+            observations,
+          ),
+        );
+        setPhase("live");
       })
       .catch(() => {
-        // No SMART session in context — keep the synthetic demo chart.
+        // No SMART session in context — fall back to the synthetic demo chart.
+        if (!cancelled) setPhase("demo");
       });
     return () => {
       cancelled = true;
@@ -114,26 +119,38 @@ export default function Home() {
   const labels = useMemo(() => citationLabels(context), [context]);
   const resources = useMemo(() => resourceIndex(context), [context]);
 
+  // Dock content by phase: seed for demo, computed-from-chart for live, empty
+  // while loading (no dummy flash).
+  const glance = useMemo(() => {
+    if (phase === "demo") return SEED_GLANCE;
+    if (phase === "live") return buildGlance(context);
+    return undefined;
+  }, [phase, context]);
+  const alerts = useMemo(() => {
+    if (phase === "demo") return SEED_ALERTS;
+    if (phase === "live") return safetyScan(context);
+    return [];
+  }, [phase, context]);
+  const initialMessages = phase === "demo" ? SEED_CONVERSATION : [];
+
   const respond = useCallback(
     (text: string, history: ChatMessage[]) => sendChat(text, history, context),
     [context],
   );
 
-  // The seed glance / safety scan / conversation are Jane-Doe demo content. On a
-  // real SMART launch they would be wrong for the in-context patient, so start
-  // the live dock clean. Keying by patient id remounts Console (resetting its
-  // message state) when we swap from the demo patient to the launched one.
+  // Key by phase + patient id so Console remounts (re-seeding its message state)
+  // when we transition loading → demo/live or swap to the launched patient.
   return (
     <Console
-      key={view.patient.id}
+      key={`${phase}:${view.patient.id}`}
       patient={view.patient}
       meds={view.meds}
       allergies={view.allergies}
       codeStatus={view.codeStatus}
-      dataMode={live ? "live" : "synthetic"}
-      glance={live ? undefined : SEED_GLANCE}
-      alerts={live ? [] : SEED_ALERTS}
-      initialMessages={live ? [] : SEED_CONVERSATION}
+      dataMode={phase === "live" ? "live" : "synthetic"}
+      glance={glance}
+      alerts={alerts}
+      initialMessages={initialMessages}
       citationLabels={labels}
       resources={resources}
       respond={respond}

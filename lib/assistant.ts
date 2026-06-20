@@ -9,6 +9,8 @@ export interface GlanceData {
   flagged: string;
   lastVisit: string;
   resourceCount: number;
+  /** Expanded "full summary" bullet lines. When omitted, the demo fallback shows. */
+  details?: string[];
 }
 
 export interface SafetyAlert {

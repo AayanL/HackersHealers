@@ -1,4 +1,5 @@
 import type { TrendCardData, TrendPoint } from "@/lib/assistant";
+import { formatQuantity } from "@/lib/format";
 import { CitationLink } from "../CitationLink";
 import { CardShell } from "./CardShell";
 
@@ -87,7 +88,7 @@ export function TrendCard({
                 p.flagged ? "font-bold text-[#cf3b3b]" : "text-[#1f242b]"
               }
             >
-              {p.value} {data.unit}
+              {formatQuantity(p.value)} {data.unit}
               {p.flagged ? " ▲" : ""}
             </span>
             <CitationLink
@@ -110,9 +111,11 @@ export function TrendCard({
         </div>
       ) : null}
 
-      <code className="block rounded-[4px] bg-[#16202e] px-[8px] py-[6px] font-mono text-[10px] text-[#9fb0c7]">
-        {data.query}
-      </code>
+      {/* Provenance: the literal FHIR read, styled as the design's GET pill. */}
+      <div className="inline-flex max-w-full items-center gap-[6px] self-start rounded-[4px] border border-[#d2d8e0] bg-[#e9edf3] px-[8px] py-[5px] font-mono text-[10px] text-[#3a4a5e]">
+        <span className="font-semibold">GET</span>
+        <code className="truncate">{data.query}</code>
+      </div>
     </CardShell>
   );
 }

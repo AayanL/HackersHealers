@@ -16,7 +16,10 @@ export function citationLabels(ctx: PatientContext): Record<string, string> {
 /** Shorten an unresolved ref so a stray opaque id is at least visually contained. */
 export function shortRef(ref: string): string {
   const slash = ref.indexOf("/");
-  if (slash < 0) return ref;
+  if (slash < 0) {
+    // A bare opaque id with no resource-type prefix (e.g. a raw FHIR UUID).
+    return ref.length > 10 ? `${ref.slice(0, 8)}…` : ref;
+  }
   const type = ref.slice(0, slash);
   const id = ref.slice(slash + 1);
   return id.length > 10 ? `${type}/${id.slice(0, 8)}…` : ref;

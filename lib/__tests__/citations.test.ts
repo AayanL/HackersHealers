@@ -39,4 +39,8 @@ describe("shortRef", () => {
   it("leaves short slugs untouched", () => {
     expect(shortRef("Condition/I10")).toBe("Condition/I10");
   });
+
+  it("shortens a bare opaque id that has no resource-type prefix", () => {
+    expect(shortRef("2fdbe3af-88c5-4f5f-8ef8-5c23bcffcdd2")).toBe("2fdbe3af…");
+  });
 });

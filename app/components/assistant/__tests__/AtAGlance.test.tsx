@@ -19,4 +19,19 @@ describe("AtAGlance", () => {
       screen.getByRole("button", { name: /Hide summary/i }),
     ).toHaveAttribute("aria-expanded", "true");
   });
+
+  it("collapses the whole panel to reclaim space", () => {
+    render(<AtAGlance glance={SEED_GLANCE} />);
+    const header = screen.getByRole("button", { name: /Collapse at a glance/i });
+    expect(header).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByText("grounded · 6 resources")).toBeInTheDocument();
+
+    fireEvent.click(header);
+    expect(
+      screen.getByRole("button", { name: /Expand at a glance/i }),
+    ).toHaveAttribute("aria-expanded", "false");
+    // Body (summary + grounding footer) is gone while collapsed.
+    expect(screen.queryByText("grounded · 6 resources")).not.toBeInTheDocument();
+    expect(screen.queryByText(/68F with hypertension/i)).not.toBeInTheDocument();
+  });
 });

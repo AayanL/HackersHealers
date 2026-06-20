@@ -53,4 +53,24 @@ describe("Conversation", () => {
     render(<Conversation messages={[]} pending />);
     expect(screen.getByRole("status")).toHaveTextContent("thinking…");
   });
+
+  it("renders the topSlot panels inside the scroll region, above messages", () => {
+    const messages: ChatMessage[] = [
+      { id: "u1", role: "user", text: "First question" },
+    ];
+    render(
+      <Conversation
+        messages={messages}
+        topSlot={<div>At-a-glance panel</div>}
+      />,
+    );
+    const panel = screen.getByText("At-a-glance panel");
+    const message = screen.getByText("First question");
+    expect(panel).toBeInTheDocument();
+    // The panel scrolls with the chat: it precedes the messages in DOM order.
+    expect(
+      panel.compareDocumentPosition(message) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
 });

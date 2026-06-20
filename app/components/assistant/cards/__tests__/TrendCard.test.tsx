@@ -35,8 +35,19 @@ describe("TrendCard", () => {
     expect(screen.getByText(/5.3 mmol\/L ▲/)).toBeInTheDocument();
   });
 
-  it("shows the literal FHIR query as provenance", () => {
+  it("rounds raw high-precision values for display", () => {
+    const messy: TrendCardData = {
+      ...data,
+      points: [{ date: "1980-04-30", value: 15.125706291650257, ref: "obs1" }],
+    };
+    render(<TrendCard data={messy} />);
+    expect(screen.getByText(/^15\.1 mmol\/L/)).toBeInTheDocument();
+    expect(screen.queryByText(/15\.125706/)).not.toBeInTheDocument();
+  });
+
+  it("shows the literal FHIR query as a GET provenance pill", () => {
     render(<TrendCard data={data} />);
+    expect(screen.getByText("GET")).toBeInTheDocument();
     expect(
       screen.getByText("Observation?code=2823-3&date=ge2025-06"),
     ).toBeInTheDocument();

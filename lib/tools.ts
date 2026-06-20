@@ -23,20 +23,15 @@ import type {
   SummaryCardData,
   TrendCardData,
 } from "./assistant";
+import { RANGES, activeMeds, flaggedLabs } from "./clinical";
 import type {
   ContextMedication,
   ContextObservation,
   PatientContext,
 } from "./grounding";
+import { buildInteractions, checkInteractions } from "./interactions";
 
 // --- shared helpers --------------------------------------------------------
-
-const RANGES: Record<string, { low: number; high: number }> = {
-  "2823-3": { low: 3.5, high: 5.1 }, // potassium
-  "2951-2": { low: 135, high: 145 }, // sodium
-  "2160-0": { low: 0.6, high: 1.3 }, // creatinine
-  "4548-4": { low: 4, high: 5.7 }, // a1c
-};
 
 interface Measure {
   match: RegExp;
@@ -52,10 +47,6 @@ const MEASURES: Measure[] = [
   { match: /a1c|hba1c/, code: "4548-4", label: "Hemoglobin A1c" },
   { match: /glucose/, code: "2345-7", label: "Glucose" },
 ];
-
-function activeMeds(ctx: PatientContext): ContextMedication[] {
-  return ctx.medications.filter((m) => m.status === "active");
-}
 
 const CLASS_OF: { match: RegExp; klass: string }[] = [
   {
@@ -128,6 +119,15 @@ export function buildReconcile(ctx: PatientContext): ReconcileCardData {
       });
     }
   }
+
+  // Drug–drug interactions (curated subset), surfaced highest-severity first.
+  findings.push(...checkInteractions(ctx));
+  const rank: Record<ReconcileFinding["severity"], number> = {
+    high: 0,
+    moderate: 1,
+    low: 2,
+  };
+  findings.sort((a, b) => rank[a.severity] - rank[b.severity]);
 
   return { kind: "reconcile", findings, coverageGaps: [egfrNote(ctx)] };
 }
@@ -281,13 +281,6 @@ export function buildGuideline(ctx: PatientContext): GuidelineCardData {
 
 // --- F3: summary -----------------------------------------------------------
 
-function flaggedLabs(ctx: PatientContext): ContextObservation[] {
-  return ctx.observations.filter((o) => {
-    const r = o.code ? RANGES[o.code] : undefined;
-    return r ? o.value < r.low || o.value > r.high : false;
-  });
-}
-
 export function buildSummary(ctx: PatientContext): SummaryCardData {
   const active = activeMeds(ctx);
   const problems = ctx.problems.map((p) => p.name).join(", ") || "no charted problems";
@@ -379,7 +372,13 @@ export function routeToCard(
 ): RouteResult | null {
   const lower = text.toLowerCase();
 
-  if (/reconcile|interaction|double[- ]?check|duplicate|review (the )?med/.test(lower)) {
+  if (/interaction|interact\b|drug[- ]?drug|\bddi\b/.test(lower)) {
+    return {
+      text: "Drug–drug interaction screen (curated subset):",
+      card: buildInteractions(ctx),
+    };
+  }
+  if (/reconcile|double[- ]?check|duplicate|review (the )?med/.test(lower)) {
     return { text: "Here's the reconciliation, grounded in the chart:", card: buildReconcile(ctx) };
   }
   if (/progress note|soap|\bdocument\b|charting|\bnote\b/.test(lower)) {
@@ -450,9 +449,15 @@ export function buildAssistantTools(
   return {
     reconcile_medications: tool({
       description:
-        "Reconcile the medication list: surface duplicate therapies, drugs with no charted indication, and renal-dose coverage gaps. Use when asked to reconcile / double-check / review the meds.",
+        "Reconcile the medication list: surface duplicate therapies, drugs with no charted indication, renal-dose coverage gaps, and curated drug–drug interactions. Use when asked to reconcile / double-check / review the meds.",
       inputSchema: NO_INPUT,
       execute: async () => emit(buildReconcile(ctx)),
+    }),
+    check_interactions: tool({
+      description:
+        "Screen the patient's ACTIVE medications for drug–drug interactions using a curated rule set (NOT a licensed full DDI database). Use when asked to check interactions. Returns a card of interaction findings, or states none were found in the curated subset.",
+      inputSchema: NO_INPUT,
+      execute: async () => emit(buildInteractions(ctx)),
     }),
     show_lab_trend: tool({
       description:

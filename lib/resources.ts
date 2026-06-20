@@ -3,6 +3,7 @@
 // title plus the parsed fields we hold in the grounded context. Powers both the
 // inline citation chips and the click-through reference drawer.
 
+import { formatQuantity } from "./format";
 import type { PatientContext } from "./grounding";
 
 export interface ResourceDetail {
@@ -41,7 +42,7 @@ export function resourceIndex(
   }
 
   for (const o of ctx.observations) {
-    const value = `${o.value}${o.unit ? ` ${o.unit}` : ""}`;
+    const value = `${formatQuantity(o.value)}${o.unit ? ` ${o.unit}` : ""}`;
     index[o.ref] = {
       ref: o.ref,
       type: "Observation",
