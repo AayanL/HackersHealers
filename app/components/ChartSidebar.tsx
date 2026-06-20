@@ -29,7 +29,7 @@ export function ChartSidebar({
   return (
     <nav
       aria-label="Chart"
-      className="flex w-[172px] flex-none flex-col gap-px bg-[#16202e] px-[9px] py-[12px]"
+      className="flex w-[172px] flex-none flex-col gap-px overflow-y-auto bg-[#16202e] px-[9px] py-[12px]"
     >
       <div className="px-[10px] py-[7px] text-[10px] font-bold uppercase tracking-[0.1em] text-[#5d6b7e]">
         Chart

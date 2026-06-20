@@ -12,6 +12,8 @@ export interface AssistantDockProps {
   pending?: boolean;
   onSend?: (text: string) => void;
   composerPlaceholder?: string;
+  citationLabels?: Record<string, string>;
+  onCitationClick?: (ref: string) => void;
 }
 
 export function AssistantDock({
@@ -22,13 +24,15 @@ export function AssistantDock({
   pending,
   onSend,
   composerPlaceholder,
+  citationLabels,
+  onCitationClick,
 }: AssistantDockProps) {
   return (
     <aside
       aria-label="Assistant"
-      className="flex w-[412px] flex-none flex-col border-l border-[#d2d8e0] bg-[#f4f6f9]"
+      className="flex min-h-0 w-[412px] flex-none flex-col overflow-hidden border-l border-[#d2d8e0] bg-[#f4f6f9]"
     >
-      <header className="flex items-center gap-[9px] border-b border-[#d2d8e0] bg-[#16202e] px-4 py-[11px] text-white">
+      <header className="flex shrink-0 items-center gap-[9px] border-b border-[#d2d8e0] bg-[#16202e] px-4 py-[11px] text-white">
         <span className="flex h-[22px] w-[22px] flex-none items-center justify-center rounded-[5px] bg-[#2756e6]">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="#fff" aria-hidden>
             <path d="M12 2.5l2 6 6 2-6 2-2 6-2-6-6-2 6-2z" />
@@ -46,7 +50,12 @@ export function AssistantDock({
 
       {glance ? <AtAGlance glance={glance} /> : null}
       <SafetyScan alerts={alerts} />
-      <Conversation messages={messages} pending={pending} />
+      <Conversation
+        messages={messages}
+        pending={pending}
+        citationLabels={citationLabels}
+        onCitationClick={onCitationClick}
+      />
       <Composer placeholder={composerPlaceholder} onSend={onSend} />
     </aside>
   );

@@ -183,7 +183,7 @@ export const SEED_CONVERSATION: ChatMessage[] = [
     id: "a1",
     role: "assistant",
     text: "Lisinopril 10 mg daily is active, started 2026-04-02. Maps to her recorded Hypertension problem.",
-    citations: ["MedicationRequest/lisinopril", "Condition/I10"],
+    citations: ["MedicationRequest/lisinopril-10", "Condition/I10"],
   },
   { id: "u2", role: "user", text: "Reconcile her meds." },
   {

@@ -2,6 +2,7 @@
 
 import { useCallback, useRef, useState } from "react";
 import type { ChatMessage, GlanceData, SafetyAlert } from "@/lib/assistant";
+import { type ResourceDetail, unknownResource } from "@/lib/resources";
 import type { MedView, PatientView } from "@/lib/types";
 import AppBar from "./AppBar";
 import ChartSidebar from "./ChartSidebar";
@@ -9,6 +10,7 @@ import DemoBanner from "./DemoBanner";
 import MedicationList from "./MedicationList";
 import PatientBanner from "./PatientBanner";
 import AssistantDock from "./assistant/AssistantDock";
+import ReferenceDrawer from "./assistant/ReferenceDrawer";
 
 export interface ConsoleProps {
   patient: PatientView;
@@ -19,6 +21,10 @@ export interface ConsoleProps {
   glance?: GlanceData;
   alerts?: SafetyAlert[];
   initialMessages?: ChatMessage[];
+  /** Resource ref → human label, for resolving inline citation chips. */
+  citationLabels?: Record<string, string>;
+  /** Resource ref → full detail, opened in the reference drawer on click. */
+  resources?: Record<string, ResourceDetail>;
   /** Produces the assistant reply. Defaults to a placeholder until /api/chat is wired. */
   respond?: (text: string, history: ChatMessage[]) => Promise<ChatMessage>;
 }
@@ -43,10 +49,13 @@ export function Console({
   glance,
   alerts = [],
   initialMessages = [],
+  citationLabels,
+  resources = {},
   respond,
 }: ConsoleProps) {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [pending, setPending] = useState(false);
+  const [selectedRef, setSelectedRef] = useState<string | null>(null);
   const ref = useRef<ChatMessage[]>(initialMessages);
 
   const push = useCallback((m: ChatMessage) => {
@@ -76,7 +85,7 @@ export function Console({
   const firstName = patient.name.split(/\s+/)[0] || "the patient";
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#e9ecf1] font-sans text-[#15181d]">
+    <div className="flex h-screen flex-col overflow-hidden bg-[#e9ecf1] font-sans text-[#15181d]">
       <DemoBanner dataMode={dataMode} />
       <AppBar />
       <PatientBanner
@@ -84,7 +93,7 @@ export function Console({
         allergies={allergies}
         codeStatus={codeStatus}
       />
-      <div className="flex flex-1 items-stretch">
+      <div className="flex min-h-0 flex-1 items-stretch">
         <ChartSidebar active="Medications" />
         <MedicationList
           meds={meds}
@@ -98,8 +107,18 @@ export function Console({
           pending={pending}
           onSend={handleSend}
           composerPlaceholder={`Ask about ${firstName}…`}
+          citationLabels={citationLabels}
+          onCitationClick={setSelectedRef}
         />
       </div>
+      <ReferenceDrawer
+        resource={
+          selectedRef
+            ? (resources[selectedRef] ?? unknownResource(selectedRef))
+            : null
+        }
+        onClose={() => setSelectedRef(null)}
+      />
     </div>
   );
 }

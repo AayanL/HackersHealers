@@ -11,7 +11,7 @@ export function MedicationList({ meds, onReconcile }: MedicationListProps) {
   const active = meds.filter((m) => m.status === "active").length;
 
   return (
-    <main className="min-w-0 flex-1 px-[20px] py-[16px]">
+    <main className="min-w-0 flex-1 overflow-y-auto px-[20px] py-[16px]">
       <div className="mb-3 flex items-center gap-[10px]">
         <h1 className="m-0 text-[16px] font-extrabold tracking-[-0.01em]">
           Medications

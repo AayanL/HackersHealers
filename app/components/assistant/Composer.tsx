@@ -31,7 +31,7 @@ export function Composer({
   }
 
   return (
-    <div className="border-t border-[#d2d8e0] bg-white px-[13px] pb-3 pt-[10px]">
+    <div className="shrink-0 border-t border-[#d2d8e0] bg-white px-[13px] pb-3 pt-[10px]">
       <div className="mb-2 flex flex-wrap gap-[5px]">
         {suggestions.map((s) => (
           <button

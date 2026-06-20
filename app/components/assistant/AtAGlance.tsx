@@ -26,7 +26,7 @@ export function AtAGlance({ glance }: { glance: GlanceData }) {
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="px-[14px] pt-[13px]">
+    <div className="shrink-0 px-[14px] pt-[13px]">
       <div className="overflow-hidden rounded-[5px] border border-[#d2d8e0] border-t-[3px] border-t-[#2756e6] bg-white">
         <div className="flex items-center gap-[7px] px-3 pb-[7px] pt-[9px]">
           <span className="flex h-[17px] w-[17px] flex-none items-center justify-center rounded-[4px] bg-[#e4eafd] text-[#2756e6]">

@@ -71,7 +71,10 @@ function AlertCard({ alert }: { alert: SafetyAlert }) {
 export function SafetyScan({ alerts }: { alerts: SafetyAlert[] }) {
   if (alerts.length === 0) return null;
   return (
-    <section aria-label="Safety scan" className="px-[14px] pb-[3px] pt-[13px]">
+    <section
+      aria-label="Safety scan"
+      className="shrink-0 px-[14px] pb-[3px] pt-[13px]"
+    >
       <div className="mb-2 flex items-center gap-[7px]">
         <span className="text-[10.5px] font-bold uppercase tracking-[0.08em] text-[#8a93a2]">
           Safety scan
