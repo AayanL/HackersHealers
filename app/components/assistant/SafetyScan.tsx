@@ -69,33 +69,23 @@ function AlertCard({ alert }: { alert: SafetyAlert }) {
 }
 
 export function SafetyScan({ alerts }: { alerts: SafetyAlert[] }) {
-  const [collapsed, setCollapsed] = useState(false);
   if (alerts.length === 0) return null;
   return (
     <section
       aria-label="Safety scan"
       className="shrink-0 px-[14px] pb-[3px] pt-[13px]"
     >
-      <button
-        type="button"
-        onClick={() => setCollapsed((v) => !v)}
-        aria-expanded={!collapsed}
-        aria-label={collapsed ? "Expand safety scan" : "Collapse safety scan"}
-        className="mb-2 flex w-full cursor-pointer items-center gap-[7px] border-none bg-transparent p-0 text-left"
-      >
+      <div className="mb-2 flex items-center gap-[7px]">
         <span className="text-[10.5px] font-bold uppercase tracking-[0.08em] text-[#8a93a2]">
           Safety scan
         </span>
         <span className="rounded-[3px] bg-[#fbefd6] px-[6px] py-[2px] font-mono text-[10px] text-[#9a6400]">
           {alerts.length} {alerts.length === 1 ? "flag" : "flags"}
         </span>
-        <span aria-hidden className="ml-auto text-[10px] text-[#8a93a2]">
-          {collapsed ? "▸" : "▾"}
-        </span>
-      </button>
-      {collapsed
-        ? null
-        : alerts.map((a) => <AlertCard key={a.id} alert={a} />)}
+      </div>
+      {alerts.map((a) => (
+        <AlertCard key={a.id} alert={a} />
+      ))}
     </section>
   );
 }

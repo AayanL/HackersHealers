@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import type { ChatMessage, GlanceData, SafetyAlert } from "@/lib/assistant";
 import AtAGlance from "./AtAGlance";
 import Composer from "./Composer";
@@ -16,6 +19,14 @@ export interface AssistantDockProps {
   onCitationClick?: (ref: string) => void;
 }
 
+function SparkleMark() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="#fff" aria-hidden>
+      <path d="M12 2.5l2 6 6 2-6 2-2 6-2-6-6-2 6-2z" />
+    </svg>
+  );
+}
+
 export function AssistantDock({
   patientLabel,
   glance,
@@ -27,6 +38,33 @@ export function AssistantDock({
   citationLabels,
   onCitationClick,
 }: AssistantDockProps) {
+  const [collapsed, setCollapsed] = useState(false);
+
+  // Collapsed: a thin rail pinned to the chart edge with a single re-open
+  // control, so the chart reclaims the full width but the assistant is one
+  // click away. Keeps the "Assistant" accessible name on the same landmark.
+  if (collapsed) {
+    return (
+      <aside
+        aria-label="Assistant"
+        className="flex w-[42px] flex-none flex-col items-center gap-3 border-l border-[#d2d8e0] bg-[#16202e] py-3"
+      >
+        <button
+          type="button"
+          onClick={() => setCollapsed(false)}
+          aria-expanded={false}
+          aria-label="Expand assistant"
+          className="flex h-[28px] w-[28px] flex-none cursor-pointer items-center justify-center rounded-[5px] bg-[#2756e6] text-white"
+        >
+          <SparkleMark />
+        </button>
+        <span className="select-none text-[10px] font-bold uppercase tracking-[0.18em] text-[#9fb0c7] [writing-mode:vertical-rl]">
+          Assistant
+        </span>
+      </aside>
+    );
+  }
+
   return (
     <aside
       aria-label="Assistant"
@@ -34,9 +72,7 @@ export function AssistantDock({
     >
       <header className="flex shrink-0 items-center gap-[9px] border-b border-[#d2d8e0] bg-[#16202e] px-4 py-[11px] text-white">
         <span className="flex h-[22px] w-[22px] flex-none items-center justify-center rounded-[5px] bg-[#2756e6]">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="#fff" aria-hidden>
-            <path d="M12 2.5l2 6 6 2-6 2-2 6-2-6-6-2 6-2z" />
-          </svg>
+          <SparkleMark />
         </span>
         <span className="text-[13.5px] font-bold">Assistant</span>
         <span className="ml-auto flex items-center gap-[5px] rounded-[4px] bg-[#233247] px-2 py-1 font-mono text-[10.5px] text-[#9fb0c7]">
@@ -46,6 +82,17 @@ export function AssistantDock({
           </svg>
           patient={patientLabel.replace(/\s+/g, "")}
         </span>
+        <button
+          type="button"
+          onClick={() => setCollapsed(true)}
+          aria-expanded={true}
+          aria-label="Collapse assistant"
+          className="flex h-[24px] w-[24px] flex-none cursor-pointer items-center justify-center rounded-[5px] text-[#9fb0c7] hover:bg-[#233247] hover:text-white"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="m9 6 6 6-6 6" />
+          </svg>
+        </button>
       </header>
 
       <Conversation

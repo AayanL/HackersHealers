@@ -24,10 +24,11 @@ function buildGeometry(points: TrendPoint[]) {
 
 export function TrendCard({
   data,
-  citationLabels,
   onCitationClick,
 }: {
   data: TrendCardData;
+  // Accepted for renderer parity; trend rows already show the date + value, so
+  // the chip is just a short, clickable handle to the source (no verbose label).
   citationLabels?: Record<string, string>;
   onCitationClick?: (ref: string) => void;
 }) {
@@ -94,7 +95,6 @@ export function TrendCard({
             <CitationLink
               className="ml-auto"
               refId={p.ref}
-              label={citationLabels?.[p.ref]}
               onClick={onCitationClick}
             />
           </div>
@@ -111,9 +111,10 @@ export function TrendCard({
         </div>
       ) : null}
 
-      {/* Provenance: the literal FHIR read, styled as the design's GET pill. */}
-      <div className="inline-flex max-w-full items-center gap-[6px] self-start rounded-[4px] border border-[#d2d8e0] bg-[#e9edf3] px-[8px] py-[5px] font-mono text-[10px] text-[#3a4a5e]">
-        <span className="font-semibold">GET</span>
+      {/* Provenance: the literal FHIR read — kept faint so it reads as a quiet
+          footnote rather than competing with the data above it. */}
+      <div className="flex max-w-full items-center gap-[5px] font-mono text-[9.5px] text-[#aab2bd]">
+        <span className="font-semibold tracking-wide">GET</span>
         <code className="truncate">{data.query}</code>
       </div>
     </CardShell>
