@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // `next typegen` output (committed) — generated, not hand-authored.
+    "types/**",
   ]),
 ]);
 

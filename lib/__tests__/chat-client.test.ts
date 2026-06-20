@@ -39,10 +39,9 @@ describe("sendChat", () => {
   });
 
   it("POSTs the history and patient context to /api/chat", async () => {
-    const fetchMock = vi.fn(
-      async (_url: string, _init?: RequestInit) =>
-        jsonResponse({ text: "ok", card: null }),
-    );
+    // Typed so mock.calls[0] is a [url, init] tuple, with no unused params.
+    const fetchMock = vi.fn<(url: string, init?: RequestInit) => Promise<Response>>();
+    fetchMock.mockResolvedValue(jsonResponse({ text: "ok", card: null }));
     vi.stubGlobal("fetch", fetchMock);
 
     await sendChat(
