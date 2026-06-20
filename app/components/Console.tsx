@@ -1,19 +1,26 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import type {
   ChatMessage,
   GlanceData,
   HealthMaintenanceItem,
   SafetyAlert,
 } from "@/lib/assistant";
+import type { PatientContext } from "@/lib/grounding";
 import { type ResourceDetail, unknownResource } from "@/lib/resources";
 import type { MedView, PatientView } from "@/lib/types";
 import AppBar from "./AppBar";
-import ChartSidebar from "./ChartSidebar";
+import ChartSidebar, { type ChartNavItem } from "./ChartSidebar";
 import DemoBanner from "./DemoBanner";
 import MedicationList from "./MedicationList";
 import PatientBanner from "./PatientBanner";
+import AllergiesView from "./chart/AllergiesView";
+import NotesView from "./chart/NotesView";
+import OrdersView from "./chart/OrdersView";
+import ProblemsView from "./chart/ProblemsView";
+import ResultsView from "./chart/ResultsView";
+import Snapshot from "./chart/Snapshot";
 import AssistantDock from "./assistant/AssistantDock";
 import ReferenceDrawer from "./assistant/ReferenceDrawer";
 
@@ -26,6 +33,8 @@ export interface ConsoleProps {
   glance?: GlanceData;
   alerts?: SafetyAlert[];
   healthMaintenance?: HealthMaintenanceItem[];
+  /** Full grounded chart context — powers the Problems / Results chart pages. */
+  context?: PatientContext;
   initialMessages?: ChatMessage[];
   /** Resource ref → human label, for resolving inline citation chips. */
   citationLabels?: Record<string, string>;
@@ -55,6 +64,7 @@ export function Console({
   glance,
   alerts = [],
   healthMaintenance = [],
+  context,
   initialMessages = [],
   citationLabels,
   resources = {},
@@ -63,6 +73,7 @@ export function Console({
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [pending, setPending] = useState(false);
   const [selectedRef, setSelectedRef] = useState<string | null>(null);
+  const [activePage, setActivePage] = useState("Medications");
   const ref = useRef<ChatMessage[]>(initialMessages);
 
   const push = useCallback((m: ChatMessage) => {
@@ -91,6 +102,71 @@ export function Console({
 
   const firstName = patient.name.split(/\s+/)[0] || "the patient";
 
+  const activeMeds = meds.filter((m) => m.status === "active").length;
+  const chartItems: ChartNavItem[] = useMemo(
+    () => [
+      { label: "Snapshot" },
+      { label: "Problems", count: context?.problems.length || undefined },
+      { label: "Medications", count: activeMeds || undefined },
+      { label: "Results", count: context?.observations.length || undefined },
+      { label: "Notes" },
+      { label: "Orders" },
+      { label: "Allergies", count: allergies.length || undefined },
+    ],
+    [context, activeMeds, allergies.length],
+  );
+
+  const page = (() => {
+    switch (activePage) {
+      case "Snapshot":
+        return (
+          <Snapshot
+            patient={patient}
+            glance={glance}
+            allergies={allergies}
+            healthMaintenance={healthMaintenance}
+          />
+        );
+      case "Problems":
+        return (
+          <ProblemsView
+            problems={context?.problems ?? []}
+            citationLabels={citationLabels}
+            onCitationClick={setSelectedRef}
+          />
+        );
+      case "Results":
+        return (
+          <ResultsView
+            observations={context?.observations ?? []}
+            citationLabels={citationLabels}
+            onCitationClick={setSelectedRef}
+          />
+        );
+      case "Notes":
+        return (
+          <NotesView
+            onDraft={() => handleSend("Draft a progress note for today.")}
+          />
+        );
+      case "Orders":
+        return (
+          <OrdersView
+            onDraft={() => handleSend("Draft a lab order for review.")}
+          />
+        );
+      case "Allergies":
+        return <AllergiesView allergies={allergies} />;
+      default:
+        return (
+          <MedicationList
+            meds={meds}
+            onReconcile={() => handleSend("Reconcile her meds.")}
+          />
+        );
+    }
+  })();
+
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-[#e9ecf1] font-sans text-[#15181d]">
       <DemoBanner dataMode={dataMode} />
@@ -101,11 +177,12 @@ export function Console({
         codeStatus={codeStatus}
       />
       <div className="flex min-h-0 flex-1 items-stretch">
-        <ChartSidebar active="Medications" />
-        <MedicationList
-          meds={meds}
-          onReconcile={() => handleSend("Reconcile her meds.")}
+        <ChartSidebar
+          active={activePage}
+          items={chartItems}
+          onSelect={setActivePage}
         />
+        {page}
         <AssistantDock
           patientLabel={patient.name}
           glance={glance}

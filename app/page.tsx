@@ -185,6 +185,7 @@ export default function Home() {
       glance={glance}
       alerts={alerts}
       healthMaintenance={healthMaintenance}
+      context={context}
       initialMessages={initialMessages}
       citationLabels={labels}
       resources={resources}

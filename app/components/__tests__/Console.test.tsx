@@ -3,7 +3,14 @@ import { describe, expect, it, vi } from "vitest";
 import Console from "@/app/components/Console";
 import { SEED_ALERTS, SEED_CONVERSATION, SEED_GLANCE } from "@/lib/assistant";
 import { mapMedications, patientView } from "@/lib/fhir";
-import { SEED_ALLERGIES, SEED_MEDICATIONS, SEED_PATIENT } from "@/lib/seed";
+import { buildPatientContext } from "@/lib/grounding";
+import {
+  SEED_ALLERGIES,
+  SEED_MEDICATIONS,
+  SEED_OBSERVATIONS,
+  SEED_PATIENT,
+  SEED_PROBLEMS,
+} from "@/lib/seed";
 
 const baseProps = {
   patient: patientView(SEED_PATIENT, new Date("2026-06-19T12:00:00")),
@@ -28,6 +35,28 @@ describe("Console", () => {
     expect(
       screen.getByText(/Lisinopril 10 mg daily is active/i),
     ).toBeInTheDocument();
+  });
+
+  it("navigates between chart sections from the sidebar", () => {
+    const context = buildPatientContext(
+      patientView(SEED_PATIENT, new Date("2026-06-19T12:00:00")),
+      mapMedications(SEED_MEDICATIONS),
+      SEED_PROBLEMS,
+      SEED_OBSERVATIONS,
+    );
+    render(<Console {...baseProps} context={context} />);
+
+    // Defaults to the Medications page.
+    expect(screen.getByText("Lisinopril 10 mg")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /Problems/i }));
+    expect(screen.getByText("Essential hypertension")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /Results/i }));
+    expect(screen.getAllByTestId("result-row").length).toBeGreaterThan(0);
+
+    fireEvent.click(screen.getByRole("button", { name: /Allergies/i }));
+    expect(screen.getByTestId("allergy-row")).toBeInTheDocument();
   });
 
   it("appends a user message and the responder's reply", async () => {
